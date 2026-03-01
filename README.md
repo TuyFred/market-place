@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # online-selling
 =======
 ## Modern E‑Commerce Web App (Shoes, Bags & Electronics)
@@ -58,6 +57,30 @@ online-selling/
   ├─ PostgreSQL (ecommerce)
   ├─ Auth (customers + admins)
   └─ Storage (product-images bucket)
+```
+
+### Vercel build-fix (exit code 126)
+
+If you see the error:
+
+```
+sh: line 1: /vercel/path0/frontend/node_modules/.bin/vite: Permission denied
+Error: Command "npm run build" exited with 126
+```
+
+Do this in the `frontend` folder locally before pushing:
+
+```bash
+cd frontend
+rm -rf node_modules
+rm package-lock.json
+npm install
+# optionally run a local build to confirm
+npm run build
+```
+
+Then commit and push to trigger a fresh Vercel build.
+
 ```
 
 ---
@@ -245,11 +268,4 @@ These last two are only needed if you call Supabase directly from the frontend. 
 3. **Visit the app**
    - Shop UI: `http://localhost:5173`
    - API docs: `http://localhost:4000/docs`
-
-You can now:
-
-- Add products and categories via the API (or an admin UI extension).
-- Let customers browse products, order via WhatsApp, or use the built‑in order form.
-- Manage orders as an admin using the dashboard.
-
->>>>>>> 8430e54 (Initial commit: push local workspace to github.com/fred-cyber01/online-selling)
+   
