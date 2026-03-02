@@ -71,49 +71,68 @@ export function OrderFormInline({ product }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1">
-        <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Order with Form</h4>
-        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-          Not using WhatsApp? Fill this form to place your order directly.
+      <div className="space-y-1.5 mb-5 animate-reveal">
+        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
+          <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+          Quick Checkout
+        </h4>
+        <p className="text-[11px] text-slate-500 font-medium leading-tight ml-3">
+          Not using WhatsApp? Enter your details below.
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input
-          className={inputClass + " sm:col-span-2"}
-          placeholder="Your Full Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-        <input
-          className={inputClass}
-          placeholder="Phone Number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          required
-        />
-        <input
-          className={inputClass}
-          placeholder="Delivery Address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          required
-        />
+        <div className="sm:col-span-2 animate-reveal [animation-delay:100ms]">
+          <input
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white focus:scale-[1.01] transition-all duration-300 placeholder:text-slate-400"
+            placeholder="Your Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
+        <div className="animate-reveal [animation-delay:200ms]">
+          <input
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white focus:scale-[1.01] transition-all duration-300 placeholder:text-slate-400"
+            placeholder="Phone Number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+          />
+        </div>
+        <div className="animate-reveal [animation-delay:300ms]">
+          <input
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white focus:scale-[1.01] transition-all duration-300 placeholder:text-slate-400"
+            placeholder="Delivery Address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+          />
+        </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="shimmer-on-hover w-full inline-flex items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-[10px] font-black text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-60"
-      >
-        {submitting ? (
-          <>
-            <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            Submitting Order...
-          </>
-        ) : 'Buy now'}
-      </button>
+      <div className="animate-reveal [animation-delay:400ms]">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="mt-2 w-full inline-flex items-center justify-center rounded-xl bg-slate-900 px-6 py-3.5 text-[10px] font-black text-white shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-60 shimmer-on-hover relative overflow-hidden group/submit"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover/submit:opacity-100 transition-opacity duration-500"></div>
+          <span className="relative z-10 flex items-center gap-2">
+            {submitting ? (
+              <>
+                <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Processing...
+              </>
+            ) : (
+              <>
+                Buy now
+                <svg className="w-3.5 h-3.5 group-hover/submit:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              </>
+            )}
+          </span>
+        </button>
+      </div>
 
       {error && (
         <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-center">

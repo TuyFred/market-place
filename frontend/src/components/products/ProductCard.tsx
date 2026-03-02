@@ -223,9 +223,9 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md" onClick={() => setShowModal(false)} />
 
-            <div className="relative w-full max-w-6xl max-h-[95vh] overflow-hidden rounded-[2.5rem] bg-white border border-slate-200 shadow-2xl flex flex-col lg:flex-row">
+            <div className="relative w-full max-w-6xl max-h-[95vh] overflow-y-auto lg:overflow-hidden rounded-[2.5rem] bg-white border border-slate-200 shadow-2xl flex flex-col lg:flex-row custom-scrollbar">
               {/* Left: Image / Gallery Section */}
-              <div className="flex-1 relative bg-slate-50 flex flex-col min-h-[350px]">
+              <div className="w-full lg:flex-1 relative bg-slate-50 flex flex-col min-h-[300px] sm:min-h-[400px] lg:min-h-[600px]">
                 <div className="absolute top-6 left-6 z-10 flex gap-2">
                   <button
                     onClick={handleRotate}
@@ -242,7 +242,7 @@ export function ProductCard({ product }: ProductCardProps) {
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
 
-                <div className="flex-1 flex items-center justify-center p-12 overflow-hidden relative">
+                <div className="flex-1 flex items-center justify-center p-8 sm:p-12 overflow-hidden relative min-h-[300px] sm:min-h-[400px]">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-200/20 via-transparent to-transparent opacity-50" />
                   <img
                     src={displayImages[currentIndex]}
@@ -257,27 +257,27 @@ export function ProductCard({ product }: ProductCardProps) {
                   <>
                     <button
                       onClick={() => setCurrentIndex((currentIndex - 1 + displayImages.length) % displayImages.length)}
-                      className="absolute left-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-xl transition-all hover:bg-white active:scale-90"
+                      className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-xl transition-all hover:bg-white active:scale-90 z-20"
                     >
-                      <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                      <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                     </button>
                     <button
                       onClick={() => setCurrentIndex((currentIndex + 1) % displayImages.length)}
-                      className="absolute right-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-xl transition-all hover:bg-white active:scale-90"
+                      className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-xl transition-all hover:bg-white active:scale-90 z-20"
                     >
-                      <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                      <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
                     </button>
                   </>
                 )}
 
                 {/* Modal Thumbnails */}
                 {displayImages.length > 1 && (
-                  <div className="p-8 flex justify-center gap-4 overflow-x-auto scrollbar-hide bg-white/50 backdrop-blur-md border-t border-slate-200/30">
+                  <div className="p-4 sm:p-8 flex justify-center gap-3 sm:gap-4 overflow-x-auto scrollbar-hide bg-white/50 backdrop-blur-md border-t border-slate-200/30">
                     {displayImages.map((img, i) => (
                       <button
                         key={i}
                         onClick={() => setCurrentIndex(i)}
-                        className={`h-24 w-24 rounded-2xl overflow-hidden border-4 transition-all duration-500 shrink-0 ${currentIndex === i ? 'border-indigo-500 scale-110 shadow-2xl shadow-indigo-500/20' : 'border-white opacity-40 hover:opacity-100 hover:scale-105 shadow-sm'}`}
+                        className={`h-16 w-16 sm:h-24 sm:w-24 rounded-2xl overflow-hidden border-2 sm:border-4 transition-all duration-500 shrink-0 ${currentIndex === i ? 'border-indigo-500 scale-105 sm:scale-110 shadow-2xl shadow-indigo-500/20' : 'border-white opacity-40 hover:opacity-100 hover:scale-105 shadow-sm'}`}
                       >
                         <img src={img} className="w-full h-full object-cover" alt="" />
                       </button>
@@ -306,19 +306,19 @@ export function ProductCard({ product }: ProductCardProps) {
                 </div>
 
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between p-6 rounded-[2rem] bg-slate-50 border border-slate-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Price Card</span>
-                    <span className="text-3xl font-black text-slate-900 tracking-tighter">
+                  <div className="flex items-center justify-between p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-slate-50 border border-slate-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+                    <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Price Card</span>
+                    <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter">
                       {formatRwf(product.price)}
                     </span>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
                       Description
                       <span className="h-px flex-1 bg-slate-100"></span>
                     </h4>
-                    <p className="text-sm leading-relaxed text-slate-600 font-medium opacity-80">
+                    <p className="text-sm leading-relaxed text-slate-600 font-medium opacity-80 sm:line-clamp-none">
                       {product.description || 'This exclusive release represents the pinnacle of modern design, combining premium materials with a timeless silhouette. A perfect addition to any curated collection.'}
                     </p>
                   </div>

@@ -149,44 +149,64 @@ export function CartPage() {
           </div>
         </div>
 
-        <form onSubmit={handleCheckout} className="space-y-4 pt-4 border-t border-slate-100">
-          <div className="space-y-1 mb-4">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delivery Details</h4>
-            <p className="text-[10px] text-slate-500 leading-tight">Please clarify your shipping information to complete the order.</p>
+        <form onSubmit={handleCheckout} className="space-y-4 pt-6 border-t border-slate-100">
+          <div className="space-y-1.5 mb-5 animate-reveal">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+              Secure Checkout
+            </h4>
+            <p className="text-[11px] text-slate-500 font-medium leading-tight ml-3">Enter details to finalize your premium order.</p>
           </div>
-          <input
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-            placeholder="Full name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <input
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-            placeholder="Phone number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-          />
-          <input
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-            placeholder="Detailed Address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            required
-          />
+          <div className="animate-reveal [animation-delay:100ms]">
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white focus:scale-[1.01] transition-all duration-300 placeholder:text-slate-400"
+              placeholder="Full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="animate-reveal [animation-delay:200ms]">
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white focus:scale-[1.01] transition-all duration-300 placeholder:text-slate-400"
+              placeholder="Phone number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+            />
+          </div>
+          <div className="animate-reveal [animation-delay:300ms]">
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white focus:scale-[1.01] transition-all duration-300 placeholder:text-slate-400"
+              placeholder="Detailed Shipping Address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              required
+            />
+          </div>
 
-          <button
-            type="submit"
-            disabled={submitting || items.length === 0}
-            className="mt-4 w-full inline-flex items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-[10px] font-black text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-60 shimmer-on-hover"
-          >
-            {submitting
-              ? 'Processing...'
-              : isAuthenticated
-                ? 'Complete Secure Checkout'
-                : 'Sign In to Checkout'}
-          </button>
+          <div className="animate-reveal [animation-delay:400ms]">
+            <button
+              type="submit"
+              disabled={submitting || items.length === 0}
+              className="mt-2 w-full inline-flex items-center justify-center rounded-xl bg-slate-900 px-6 py-3.5 text-[10px] font-black text-white shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-60 shimmer-on-hover relative overflow-hidden group/submit"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover/submit:opacity-100 transition-opacity duration-500"></div>
+              <span className="relative z-10 flex items-center gap-2">
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Buy now
+                    <svg className="w-3.5 h-3.5 group-hover/submit:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                  </>
+                )}
+              </span>
+            </button>
+          </div>
           <button
             type="button"
             onClick={handleWhatsAppCart}
