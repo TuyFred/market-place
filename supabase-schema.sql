@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS products (
   category     TEXT NOT NULL,
   size         TEXT,
   "imageUrl"   TEXT,
+  "imageUrls"  TEXT[] DEFAULT '{}',
   stock        INTEGER DEFAULT 0,
   is_active    BOOLEAN DEFAULT true,
   created_at   TIMESTAMPTZ DEFAULT now()

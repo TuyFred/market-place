@@ -107,9 +107,13 @@ export function AdminDashboardPage() {
         category: prodForm.category,
         stock: prodForm.stock,
         is_active: prodForm.is_active ?? true,
-        imageUrl: prodForm.imageUrl || (Array.isArray(prodForm.imageUrls) ? prodForm.imageUrls[0] : undefined),
-        imageUrls: prodForm.imageUrls || (prodForm.imageUrl ? [prodForm.imageUrl] : [])
+        imageUrl: prodForm.imageUrl,
+        imageUrls: prodForm.imageUrls || []
       };
+
+      if (!payload.imageUrl && payload.imageUrls.length > 0) {
+        payload.imageUrl = payload.imageUrls[0];
+      }
 
       if (editingProd) {
         await axios.put(`/api/products/${editingProd}`, payload, { headers: authHeaders() });
@@ -169,12 +173,19 @@ export function AdminDashboardPage() {
         const res = await axios.post(url, fd, { headers: { ...h.headers, 'Content-Type': 'multipart/form-data' } });
         if (res.data?.imageUrl) uploaded.push(res.data.imageUrl);
       }
-      // Persist images coming from storage to the form. Use the first uploaded image as the
-      // canonical `imageUrl` stored in the products table so thumbnails come from DB.
+      // Persist images coming from storage to the form.
       if (uploaded.length > 0) {
-        setProdForm((s) => ({ ...s, imageUrl: uploaded[0], imageUrls: uploaded }));
+        setProdForm((s) => {
+          const existing = s.imageUrls || [];
+          const combined = [...existing, ...uploaded];
+          return {
+            ...s,
+            imageUrls: combined,
+            imageUrl: s.imageUrl || combined[0]
+          };
+        });
       }
-      setMsg('Image(s) uploaded');
+      setMsg('Image(s) uploaded and added to product gallery');
     } catch (e: any) { setMsg(e?.response?.data?.message || 'Upload failed'); }
   };
 
@@ -392,19 +403,39 @@ export function AdminDashboardPage() {
                   <input className={inputClass} placeholder="Stock" type="number" value={prodForm.stock ?? ''} onChange={(e) => setProdForm({ ...prodForm, stock: parseInt(e.target.value) || 0 })} />
                   <input className={inputClass + ' md:col-span-2'} placeholder="Description" value={prodForm.description || ''} onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })} />
                   <input className={inputClass + ' md:col-span-2'} placeholder="Image URL" value={prodForm.imageUrl || ''} onChange={(e) => setProdForm({ ...prodForm, imageUrl: e.target.value })} />
-                  <div className="md:col-span-2">
-                    <label className="text-xs text-slate-400 block mb-2">Upload image files (any format)</label>
-                    <input type="file" className="w-full text-sm" onChange={(e) => uploadFiles(e.target.files)} multiple />
-                    {prodForm.imageUrls && Array.isArray(prodForm.imageUrls) && (
-                      <div className="mt-2 flex gap-2">
-                        {prodForm.imageUrls.map((u, i) => (
-                          // eslint-disable-next-line react/no-array-index-key
-                          <img key={i} src={u} className="w-12 h-12 rounded object-cover" alt={`uploaded-${i}`} />
-                        ))}
+                  <div className="md:col-span-2 space-y-4">
+                    <label className="text-xs font-bold text-slate-400 block mb-1">Product Gallery</label>
+                    <div className="flex flex-wrap gap-3">
+                      {prodForm.imageUrls?.map((u, i) => (
+                        <div key={`${u}-${i}`} className="group relative w-20 h-20 rounded-xl overflow-hidden border border-slate-700 bg-slate-800">
+                          <img src={u} className="w-full h-full object-cover" alt={`Gallery ${i}`} />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newUrls = [...(prodForm.imageUrls || [])];
+                              newUrls.splice(i, 1);
+                              setProdForm({
+                                ...prodForm,
+                                imageUrls: newUrls,
+                                imageUrl: prodForm.imageUrl === u ? (newUrls[0] || '') : prodForm.imageUrl
+                              });
+                            }}
+                            className="absolute inset-0 bg-red-600/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          >
+                            <span className="text-xs font-bold">Remove</span>
+                          </button>
+                        </div>
+                      ))}
+                      <label className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-700 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-500/5 transition-all">
+                        <span className="text-xl">+</span>
+                        <span className="text-[10px] font-bold">Upload</span>
+                        <input type="file" className="hidden" onChange={(e) => uploadFiles(e.target.files)} multiple />
+                      </label>
+                    </div>
+                    {prodForm.imageUrl && (
+                      <div className="text-[10px] text-slate-500 italic">
+                        * The first image in the gallery will be used as the primary thumbnail.
                       </div>
-                    )}
-                    {prodForm.imageUrl && !prodForm.imageUrls && (
-                      <div className="mt-2"><img src={prodForm.imageUrl} className="w-20 h-20 rounded object-cover" alt="uploaded" /></div>
                     )}
                   </div>
                 </div>
@@ -432,19 +463,53 @@ export function AdminDashboardPage() {
                     <tbody>
                       {products.slice((productsPage - 1) * pageSize, productsPage * pageSize).map((p) => (
                         <tr key={p.id} className="border-b border-slate-800/50 transition-colors hover:bg-white/5">
-                          <td className="px-4 py-1.5">
-                            <div className="flex items-center gap-2">
-                              {p.imageUrl ? <img src={p.imageUrl} className="w-7 h-7 rounded-md object-cover" alt="" /> : <div className="w-7 h-7 rounded-md bg-slate-700 flex items-center justify-center text-[8px] text-slate-400">IMG</div>}
-                              <span className="text-slate-200 font-semibold text-xs truncate max-w-[120px]">{p.name}</span>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-3">
+                              <div className="relative group cursor-pointer" onClick={() => { setEditingProd(p.id); setProdForm(p); }}>
+                                {p.imageUrl ? (
+                                  <img src={p.imageUrl} className="w-10 h-10 rounded-xl object-cover border border-slate-700 shadow-sm" alt="" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] text-slate-500 font-bold">NO IMG</div>
+                                )}
+                                {p.imageUrls && p.imageUrls.length > 1 && (
+                                  <span className="absolute -top-1 -right-1 bg-indigo-600 text-[8px] font-black text-white px-1 rounded-md shadow-lg border border-indigo-400/50">
+                                    +{p.imageUrls.length - 1}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-slate-200 font-bold text-sm truncate">{p.name}</span>
+                                <span className="text-[10px] text-slate-500 truncate max-w-[150px]">{p.description || 'No description'}</span>
+                              </div>
                             </div>
                           </td>
-                          <td className="px-5 py-3">{(categories.find((c) => c.slug === p.category)?.name) || p.category}</td>
-                          <td className="px-5 py-3">{formatRwf(p.price ?? 0)}</td>
-                          <td className="px-5 py-3">{p.stock ?? '—'}</td>
-                          <td className="px-5 py-3 text-right">
+                          <td className="px-4 py-2">
+                            <span className="inline-flex items-center rounded-lg bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-700">
+                              {(categories.find((c) => c.slug === p.category)?.name) || p.category}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 font-black text-slate-200 text-sm">{formatRwf(p.price ?? 0)}</td>
+                          <td className="px-4 py-2">
+                            <span className={`text-[11px] font-bold ${(p.stock || 0) < 5 ? 'text-red-400' : 'text-slate-400'}`}>
+                              {p.stock ?? 0}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-right">
                             <div className="table-actions inline-flex items-center gap-2 justify-end">
-                              <button type="button" onClick={() => { setEditingProd(p.id); setProdForm(p); }} className="edit">Edit</button>
-                              <button type="button" onClick={() => deleteProd(p.id)} className="delete">Delete</button>
+                              <button
+                                type="button"
+                                onClick={() => { setEditingProd(p.id); setProdForm(p); }}
+                                className="px-3 py-1 rounded-lg bg-slate-800 text-indigo-400 hover:bg-indigo-500/10 border border-slate-700 hover:border-indigo-500/30 transition-all font-bold text-[10px]"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteProd(p.id)}
+                                className="px-3 py-1 rounded-lg bg-slate-800 text-red-400 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/30 transition-all font-bold text-[10px]"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </td>
                         </tr>

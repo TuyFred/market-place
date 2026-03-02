@@ -36,7 +36,7 @@ export async function createProduct(product) {
 
   const { data, error } = await supabaseAdmin
     .from('products')
-    .insert({ ...product, is_active: true })
+    .insert({ ...product, imageUrls: product.imageUrls || [], is_active: true })
     .select()
     .single();
 

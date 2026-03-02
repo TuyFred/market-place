@@ -63,9 +63,16 @@ export async function uploadProductImageHandler(request, reply) {
     let updatedProductId = null;
 
     if (productId) {
-      const updates = { imageUrl };
-      // If we want to append or just set the first, we can do that here.
-      // But usually multiple images come from the dashboard's saveProd.
+      // Fetch existing product to append to its images if needed
+      const product = await getProductById(productId);
+      const existingUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
+      const imageUrls = [...existingUrls, imageUrl];
+
+      const updates = {
+        imageUrl: existingUrls.length === 0 ? imageUrl : product.imageUrl,
+        imageUrls
+      };
+
       const updated = await updateProduct(productId, updates);
       updatedProductId = updated.id;
     }
@@ -81,7 +88,7 @@ export async function proxyProductImageHandler(request, reply) {
   try {
     const id = request.params.id;
     const product = await getProductById(id);
-    const imageUrl = product?.imageUrl;
+    const imageUrl = product?.imageUrl || (Array.isArray(product?.imageUrls) ? product.imageUrls[0] : null);
     if (!imageUrl) return reply.code(404).send({ message: 'No image for product' });
 
     // fetch remote image server-side to avoid CORS issues
