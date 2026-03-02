@@ -46,6 +46,12 @@ export function ProductsPage() {
 
   return (
     <section className="space-y-4">
+      <div className="mb-2">
+        <a href="/" className="inline-flex items-center gap-2 text-slate-600 hover:text-accent font-bold text-xs transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          BACK TO HOME
+        </a>
+      </div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">{title}</h1>

@@ -74,7 +74,7 @@ export function Navbar() {
           <span className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-accent/10 text-accent font-bold text-sm">
             AM
           </span>
-          <span className="font-semibold text-slate-900 tracking-tight hidden sm:inline">
+          <span className="font-semibold text-slate-900 tracking-tight sm:inline">
             Ass Market Place
           </span>
         </Link>
@@ -358,6 +358,19 @@ export function Navbar() {
 
               {/* Navigation Links */}
               <div className="px-3 py-3 space-y-0.5">
+                {/* Home */}
+                <NavLink
+                  to="/"
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-4 rounded-xl transition-all border-b border-slate-50 ${isActive ? 'bg-accent/10 text-accent' : 'text-slate-900 hover:bg-slate-50'}`
+                  }
+                >
+                  <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                  <span className="text-base font-bold">HOME / GO BACK HOME</span>
+                </NavLink>
+
+                <div className="py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Shop & Explore</div>
                 {/* Home */}
                 <NavLink
                   to="/"
