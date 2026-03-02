@@ -108,7 +108,7 @@ export function HomePage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
                   Up to 50% Off Collection
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-slate-900 leading-[0.95] tracking-tight animate-reveal">
+                <h1 className="text-3xl sm:text-4xl lg:text-6xl font-black text-slate-900 leading-[0.95] tracking-tight animate-reveal">
                   Premium <br /> Apparel <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-indigo-900 to-indigo-600">for All Styles.</span>
                 </h1>
@@ -127,7 +127,7 @@ export function HomePage() {
 
               {heroVideoUrl && (
                 <div className="relative z-10 w-full md:w-1/2 flex items-center justify-center h-full max-h-[250px] md:max-h-full shrink-0">
-                  <div className="relative w-full h-full aspect-video md:aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white/80 transform hover:scale-[1.02] transition-transform duration-500 group bg-slate-100">
+                  <div className="relative w-full h-full aspect-video md:aspect-[4/3] rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/40 transform hover:scale-[1.01] transition-transform duration-700 group bg-slate-100 ring-1 ring-slate-900/5">
                     <video
                       ref={videoRef}
                       src={heroVideoUrl}
@@ -197,7 +197,7 @@ export function HomePage() {
               <div className="rounded-[2rem] bg-amber-50 p-6 shadow-sm flex flex-col justify-center h-32 sm:h-auto xl:h-40 group cursor-pointer transition-all hover:shadow-xl hover:shadow-amber-900/5 border border-amber-100 flex-1 shimmer-on-hover">
                 <div className="space-y-1">
                   <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">New Arrivals</p>
-                  <p className="text-lg font-black text-slate-900 group-hover:translate-x-1 transition-transform">
+                  <p className="text-base font-black text-slate-900 group-hover:translate-x-1 transition-transform">
                     Casual & Warm <br /> Season Layers
                   </p>
                 </div>
@@ -205,7 +205,7 @@ export function HomePage() {
               <div className="rounded-[2rem] bg-white border border-slate-100 p-6 shadow-sm flex flex-col justify-center h-32 sm:h-auto xl:h-40 group cursor-pointer transition-all hover:shadow-xl hover:shadow-slate-900/5 flex-1 shimmer-on-hover">
                 <div className="space-y-1">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Minimalist</p>
-                  <p className="text-lg font-black text-slate-900 group-hover:translate-x-1 transition-transform">
+                  <p className="text-base font-black text-slate-900 group-hover:translate-x-1 transition-transform">
                     Modern Essentials <br /> for Her
                   </p>
                 </div>

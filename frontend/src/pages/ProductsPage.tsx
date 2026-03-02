@@ -54,7 +54,7 @@ export function ProductsPage() {
       </div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
+          <h1 className="text-lg font-black text-slate-900 tracking-tight">{title}</h1>
           <p className="text-xs text-slate-500">
             Order quickly via WhatsApp or the built-in form.
           </p>

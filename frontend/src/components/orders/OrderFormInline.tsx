@@ -67,7 +67,7 @@ export function OrderFormInline({ product }: Props) {
     );
   }
 
-  const inputClass = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-800 text-xs";
+  const inputClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-800 text-[11px]";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -105,7 +105,7 @@ export function OrderFormInline({ product }: Props) {
       <button
         type="submit"
         disabled={submitting}
-        className="shimmer-on-hover w-full inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-4 text-xs font-black text-white shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-60"
+        className="shimmer-on-hover w-full inline-flex items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-[10px] font-black text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-60"
       >
         {submitting ? (
           <>

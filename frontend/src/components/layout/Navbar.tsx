@@ -170,7 +170,7 @@ export function Navbar() {
           <NavLink
             to="/"
             className={({ isActive }) =>
-              isActive ? 'text-accent' : 'text-slate-700 hover:text-accent'
+              `text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${isActive ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'}`
             }
           >
             Home
@@ -179,7 +179,7 @@ export function Navbar() {
           <div className="relative group">
             <button
               type="button"
-              className="text-slate-700 hover:text-accent inline-flex items-center gap-1 text-sm font-semibold transition-colors"
+              className="text-slate-600 hover:text-indigo-600 inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300"
             >
               Products
               <svg className="w-2.5 h-2.5 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
