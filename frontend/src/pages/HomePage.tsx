@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { Product, ProductCard } from '../components/products/ProductCard';
 
@@ -6,6 +6,29 @@ export function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categoriesList, setCategoriesList] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [heroVideoUrl, setHeroVideoUrl] = useState<string>('');
+  const [isMuted, setIsMuted] = useState(true);
+  const [volume, setVolume] = useState(0.5);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const toggleMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    const next = !isMuted;
+    v.muted = next;
+    setIsMuted(next);
+    if (!next && v.volume === 0) { v.volume = 0.5; setVolume(0.5); }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setVolume(val);
+    if (videoRef.current) {
+      videoRef.current.volume = val;
+      if (val === 0) { videoRef.current.muted = true; setIsMuted(true); }
+      else if (isMuted) { videoRef.current.muted = false; setIsMuted(false); }
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -114,6 +137,7 @@ export function HomePage() {
                 <div className="relative z-10 w-full md:w-1/2 flex items-center justify-center h-full max-h-[250px] md:max-h-full shrink-0">
                   <div className="relative w-full h-full aspect-video md:aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white/80 transform hover:scale-[1.02] transition-transform duration-500 group bg-slate-100">
                     <video
+                      ref={videoRef}
                       src={heroVideoUrl}
                       autoPlay
                       muted
@@ -122,6 +146,52 @@ export function HomePage() {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500 pointer-events-none" />
+
+                    {/* ── Volume Control Overlay ── */}
+                    <div
+                      className="absolute bottom-3 right-3 flex items-center gap-2 z-20"
+                      onMouseEnter={() => setShowVolumeSlider(true)}
+                      onMouseLeave={() => setShowVolumeSlider(false)}
+                    >
+                      {/* Volume slider – slides out to the left */}
+                      <div
+                        className={`flex items-center overflow-hidden rounded-full bg-black/40 backdrop-blur-md transition-all duration-300 ${showVolumeSlider ? 'w-24 px-2 opacity-100' : 'w-0 px-0 opacity-0'}`}
+                      >
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={volume}
+                          onChange={handleVolumeChange}
+                          className="w-full h-1 accent-white cursor-pointer appearance-none bg-white/30 rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md"
+                          aria-label="Volume"
+                        />
+                      </div>
+
+                      {/* Mute / Unmute button */}
+                      <button
+                        onClick={toggleMute}
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-all active:scale-90 shadow-lg"
+                        aria-label={isMuted ? 'Unmute' : 'Mute'}
+                      >
+                        {isMuted ? (
+                          /* Speaker off icon */
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <line x1="23" y1="9" x2="17" y2="15" />
+                            <line x1="17" y1="9" x2="23" y2="15" />
+                          </svg>
+                        ) : (
+                          /* Speaker on icon */
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

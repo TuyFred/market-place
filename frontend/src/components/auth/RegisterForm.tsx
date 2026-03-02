@@ -54,6 +54,11 @@ export function RegisterForm({ onRegistered, variant = 'light' }: Props) {
         <input type="email" className={inp} value={email} onChange={(e) => setEmail(e.target.value)} required />
       </div>
 
+      <div className="space-y-1">
+        <label className="text-[9px] uppercase tracking-widest text-slate-500 font-bold ml-1">Address</label>
+        <input className={inp} placeholder="Your delivery address" value={address} onChange={(e) => setAddress(e.target.value)} />
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1 relative">
           <label className="text-[9px] uppercase tracking-widest text-slate-500 font-bold ml-1">Password</label>
