@@ -26,6 +26,7 @@ export function Navbar() {
   const searchRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [catOpen, setCatOpen] = useState(false);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -57,11 +58,20 @@ export function Navbar() {
     return () => { mounted = false; };
   }, []);
 
+  // lock body scroll when mobile menu is open
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  const navTo = (path: string) => { setOpen(false); navigate(path); };
+
   return (
     <header className="bg-white/80 backdrop-blur border-b border-slate-100 sticky top-0 z-30">
-      <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between h-16 gap-4">
+      <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between h-14 sm:h-16 gap-3">
+        {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent font-bold">
+          <span className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-accent/10 text-accent font-bold text-sm">
             AM
           </span>
           <span className="font-semibold text-slate-900 tracking-tight hidden sm:inline">
@@ -69,7 +79,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* search bar */}
+        {/* search bar – desktop */}
         <div ref={searchRef} className="relative flex-1 max-w-xs hidden sm:block">
           <input
             type="text"
@@ -115,22 +125,36 @@ export function Navbar() {
           )}
         </div>
 
-        {/* hamburger */}
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls="mobile-menu"
-          aria-label="Toggle navigation"
-          className="sm:hidden inline-flex items-center justify-center rounded-md p-2 text-slate-600 hover:bg-slate-100"
-          onClick={() => setOpen(!open)}
-        >
-          <span className="sr-only">Toggle navigation</span>
-          <span className="flex flex-col gap-1">
-            <span className="h-0.5 w-5 bg-slate-800" />
-            <span className="h-0.5 w-5 bg-slate-800" />
-            <span className="h-0.5 w-5 bg-slate-800" />
-          </span>
-        </button>
+        {/* Mobile: cart icon + hamburger */}
+        <div className="flex items-center gap-2 sm:hidden">
+          <NavLink
+            to="/cart"
+            className="relative inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-700"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            {totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 min-w-4 flex items-center justify-center rounded-full bg-accent text-[9px] text-white font-bold px-1">
+                {totalItems}
+              </span>
+            )}
+          </NavLink>
+
+          {/* Animated hamburger */}
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            aria-label="Toggle navigation"
+            className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-700"
+            onClick={() => setOpen(!open)}
+          >
+            <div className="flex flex-col justify-center items-center w-5 h-5 relative">
+              <span className={`block h-0.5 w-5 bg-slate-800 rounded-full transition-all duration-300 absolute ${open ? 'rotate-45 top-[9px]' : 'top-[4px]'}`} />
+              <span className={`block h-0.5 w-5 bg-slate-800 rounded-full transition-all duration-300 absolute top-[9px] ${open ? 'opacity-0 scale-0' : 'opacity-100'}`} />
+              <span className={`block h-0.5 w-5 bg-slate-800 rounded-full transition-all duration-300 absolute ${open ? '-rotate-45 top-[9px]' : 'top-[14px]'}`} />
+            </div>
+          </button>
+        </div>
 
         {/* desktop nav */}
         <div className="hidden sm:flex items-center gap-4 text-sm font-medium shrink-0">
@@ -152,6 +176,8 @@ export function Navbar() {
               <svg className="w-2.5 h-2.5 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
             </button>
             <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300 absolute top-full left-0 mt-3 w-56 rounded-2xl bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] border border-slate-100 py-3 z-50 overflow-hidden">
+              <NavLink to="/products" className="block px-4 py-2 text-sm font-semibold text-accent hover:bg-slate-50">All Products</NavLink>
+              <div className="h-px bg-slate-100 my-1" />
               {categories && categories.length > 0 ? (
                 categories.map((c) => (
                   <NavLink key={c.id} to={`/products?category=${c.slug}`} className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">{c.name}</NavLink>
@@ -180,13 +206,22 @@ export function Navbar() {
           </NavLink>
 
           {!isAuthenticated ? (
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="inline-flex items-center rounded-full bg-slate-900 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-slate-800"
-            >
-              Sign in
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="inline-flex items-center rounded-full bg-slate-900 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-slate-800"
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/register')}
+                className="inline-flex items-center rounded-full border border-slate-200 px-4 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Sign up
+              </button>
+            </div>
           ) : (
             <div className="relative group">
               <button
@@ -228,165 +263,239 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* mobile menu drawer */}
+      {/* ── Mobile menu drawer ── */}
       <div
-        className={`fixed inset-0 z-50 transition-visibility duration-300 ${open ? 'visible' : 'invisible'
-          }`}
+        className={`fixed inset-0 z-50 transition-visibility duration-300 ${open ? 'visible' : 'invisible'}`}
       >
         {/* Backdrop */}
         <div
-          className={`absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'
-            }`}
+          className={`absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => setOpen(false)}
         />
 
-        {/* Drawer Content */}
+        {/* Drawer */}
         <div
-          className={`absolute right-0 top-0 h-full w-[280px] bg-white shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'
-            }`}
+          className={`absolute right-0 top-0 h-full w-[300px] max-w-[85vw] bg-white shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
         >
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <span className="font-bold text-slate-800">Menu</span>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-accent font-bold text-sm">AM</span>
+                <span className="font-bold text-slate-900">Menu</span>
+              </div>
               <button
                 onClick={() => setOpen(false)}
-                className="p-2 text-slate-500 hover:bg-slate-50 rounded-full"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+                aria-label="Close menu"
               >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {/* Profile in Mobile */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Profile Section */}
               {isAuthenticated && (
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl mb-4">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent/20 text-accent font-bold">
-                    {user?.fullName?.charAt(0).toUpperCase() ?? user?.email.charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-slate-900 truncate">
-                      {user?.fullName || user?.email}
-                    </p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">
-                      {user?.role}
-                    </p>
+                <div className="px-5 py-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-accent to-orange-400 text-white font-bold text-lg shadow-md">
+                      {user?.fullName?.charAt(0).toUpperCase() ?? user?.email.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900 truncate text-sm">
+                        {user?.fullName || user?.email}
+                      </p>
+                      <p className="text-[10px] text-accent uppercase tracking-wider font-bold">
+                        {user?.role}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Mobile Search */}
-              <div ref={searchRef} className="relative">
-                <input
-                  type="text"
-                  placeholder="Search products…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="w-full rounded-2xl bg-slate-100 border-none px-4 py-3 text-sm focus:ring-2 focus:ring-accent/20"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2">🔍</span>
+              {/* Search Bar - Mobile */}
+              <div className="px-5 py-3 border-b border-slate-100">
+                <div ref={searchRef} className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search products…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent/30 focus:border-accent focus:outline-none transition-all"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
 
-                {showResults && results.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-slate-100 z-[60] max-h-60 overflow-y-auto">
-                    {results.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        className="w-full flex items-center gap-3 p-3 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0"
-                        onClick={() => {
-                          setOpen(false);
-                          setShowResults(false);
-                          setQuery('');
-                          navigate(`/products?search=${encodeURIComponent(p.name)}`);
-                        }}
-                      >
-                        <div className="h-10 w-10 rounded-lg bg-slate-100 shrink-0 overflow-hidden">
-                          {p.imageUrl ? (
-                            <img src={p.imageUrl} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center text-[10px] text-slate-400">IMG</div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-slate-900 truncate">{p.name}</p>
-                          <p className="text-[10px] text-accent font-bold">{formatRwf(p.price)}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  {showResults && results.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 z-[60] max-h-60 overflow-y-auto">
+                      {results.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="w-full flex items-center gap-3 p-3 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                          onClick={() => {
+                            setShowResults(false);
+                            setQuery('');
+                            navTo(`/products?search=${encodeURIComponent(p.name)}`);
+                          }}
+                        >
+                          <div className="h-10 w-10 rounded-lg bg-slate-100 shrink-0 overflow-hidden">
+                            {p.imageUrl ? (
+                              <img src={p.imageUrl} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center text-[10px] text-slate-400">IMG</div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-slate-900 truncate">{p.name}</p>
+                            <p className="text-[10px] text-accent font-bold">{formatRwf(p.price)}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Navigation Links */}
-              <div className="space-y-1">
+              <div className="px-3 py-3 space-y-0.5">
+                {/* Home */}
                 <NavLink
                   to="/"
                   onClick={() => setOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 p-3 rounded-xl transition-colors ${isActive ? 'bg-accent/10 text-accent' : 'text-slate-600 hover:bg-slate-50'
-                    }`
+                    `flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isActive ? 'bg-accent/10 text-accent' : 'text-slate-700 hover:bg-slate-50'}`
                   }
                 >
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                   <span className="text-sm font-semibold">Home</span>
                 </NavLink>
 
-                <div className="space-y-1">
-                  <p className="px-3 pt-4 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    Categories
-                  </p>
-                  {categories.map((c) => (
-                    <NavLink
-                      key={c.id}
-                      to={`/products?category=${c.slug}`}
-                      onClick={() => setOpen(false)}
-                      className="block p-3 rounded-xl text-slate-600 hover:bg-slate-50"
-                    >
-                      <span className="text-sm font-medium">{c.name}</span>
-                    </NavLink>
-                  ))}
+                {/* All Products */}
+                <NavLink
+                  to="/products"
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isActive ? 'bg-accent/10 text-accent' : 'text-slate-700 hover:bg-slate-50'}`
+                  }
+                >
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                  <span className="text-sm font-semibold">All Products</span>
+                </NavLink>
+
+                {/* Categories (expandable) */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setCatOpen(!catOpen)}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-xl text-slate-700 hover:bg-slate-50 transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                      <span className="text-sm font-semibold">Categories</span>
+                    </div>
+                    <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${catOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  <div className={`overflow-hidden transition-all duration-300 ${catOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="pl-11 pr-3 pb-2 space-y-0.5">
+                      {categories.length > 0 ? (
+                        categories.map((c) => (
+                          <NavLink
+                            key={c.id}
+                            to={`/products?category=${c.slug}`}
+                            onClick={() => setOpen(false)}
+                            className="block py-2.5 px-3 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:text-accent transition-colors font-medium"
+                          >
+                            {c.name}
+                          </NavLink>
+                        ))
+                      ) : (
+                        <>
+                          <NavLink to="/products?category=children-clothes" onClick={() => setOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Children Clothes</NavLink>
+                          <NavLink to="/products?category=women-clothes" onClick={() => setOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Women Clothes</NavLink>
+                          <NavLink to="/products?category=small-bags" onClick={() => setOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Small Bags</NavLink>
+                          <NavLink to="/products?category=accessories" onClick={() => setOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Accessories</NavLink>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
+                {/* Cart */}
                 <NavLink
                   to="/cart"
                   onClick={() => setOpen(false)}
-                  className="flex items-center justify-between p-3 rounded-xl text-slate-600 hover:bg-slate-50"
+                  className={({ isActive }) =>
+                    `flex items-center justify-between px-3 py-3 rounded-xl transition-all ${isActive ? 'bg-accent/10 text-accent' : 'text-slate-700 hover:bg-slate-50'}`
+                  }
                 >
-                  <span className="text-sm font-semibold">Shopping Cart</span>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                    <span className="text-sm font-semibold">Shopping Cart</span>
+                  </div>
                   {totalItems > 0 && (
-                    <span className="h-5 w-5 rounded-full bg-accent text-[10px] text-white flex items-center justify-center font-bold">
+                    <span className="h-6 min-w-6 px-1.5 rounded-full bg-accent text-[11px] text-white flex items-center justify-center font-bold">
                       {totalItems}
                     </span>
                   )}
                 </NavLink>
+
+                {/* My Orders - authenticated */}
+                {isAuthenticated && (
+                  <NavLink
+                    to="/customer/dashboard"
+                    onClick={() => setOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isActive ? 'bg-accent/10 text-accent' : 'text-slate-700 hover:bg-slate-50'}`
+                    }
+                  >
+                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                    <span className="text-sm font-semibold">My Orders</span>
+                  </NavLink>
+                )}
+
+                {/* Admin Dashboard - admin/manager only */}
+                {isAuthenticated && (user?.role === 'admin' || user?.role === 'manager') && (
+                  <NavLink
+                    to="/admin/dashboard"
+                    onClick={() => setOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isActive ? 'bg-accent/10 text-accent' : 'text-slate-700 hover:bg-slate-50'}`
+                    }
+                  >
+                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span className="text-sm font-semibold">Dashboard</span>
+                  </NavLink>
+                )}
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 border-t border-slate-100">
+            {/* Bottom Actions */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 space-y-2">
               {!isAuthenticated ? (
-                <button
-                  onClick={() => { setOpen(false); navigate('/login'); }}
-                  className="w-full bg-slate-900 text-white rounded-xl py-3.5 text-sm font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-[0.98]"
-                >
-                  Sign In
-                </button>
-              ) : (
-                <div className="space-y-2">
-                  {(user?.role === 'admin' || user?.role === 'manager') && (
-                    <button
-                      onClick={() => { setOpen(false); navigate('/admin/dashboard'); }}
-                      className="w-full bg-accent text-white rounded-xl py-3.5 text-sm font-bold shadow-lg shadow-accent/10 hover:opacity-90 transition-all"
-                    >
-                      Admin Dashboard
-                    </button>
-                  )}
+                <>
                   <button
-                    onClick={() => { setOpen(false); handleLogout(); }}
-                    className="w-full bg-white border border-slate-200 text-slate-600 rounded-xl py-3.5 text-sm font-bold hover:bg-slate-100 transition-all"
+                    onClick={() => navTo('/login')}
+                    className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl py-3 text-sm font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-[0.98]"
                   >
-                    Logout
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+                    Sign In
                   </button>
-                </div>
+                  <button
+                    onClick={() => navTo('/register')}
+                    className="w-full flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 rounded-xl py-3 text-sm font-bold hover:bg-slate-100 transition-all active:scale-[0.98]"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                    Create Account
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => { setOpen(false); handleLogout(); }}
+                  className="w-full flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 rounded-xl py-3 text-sm font-bold hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  Sign Out
+                </button>
               )}
             </div>
           </div>

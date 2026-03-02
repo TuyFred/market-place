@@ -64,9 +64,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const productUrl = `${window.location.origin}/products/${product.id}`;
+    const productUrl = `${window.location.origin}/products?search=${encodeURIComponent(product.name)}`;
     const priceText = formatRwf(product.price);
-    const message = `*I'm interested in this product*\n\n*Name:* ${product.name}\n*Price:* ${priceText}\n*Link:* ${productUrl}\n\n${displayImages[currentIndex]}`;
+    const message = `*I'm interested in this product*\n\n*Name:* ${product.name}\n*Price:* ${priceText}\n*Category:* ${product.category}\n*Link:* ${productUrl}\n\n${displayImages[currentIndex]}`;
     const whatsappUrl = `https://wa.me/${CONTACT_RAW}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
