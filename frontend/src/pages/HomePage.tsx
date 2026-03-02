@@ -50,52 +50,49 @@ export function HomePage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between text-xs text-slate-500">
+      <header className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
         <div className="flex items-baseline gap-2">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
-            Ass Market Place Explore
-          </span>
+          <span>Explore Ass Marketplace</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse-soft"></span>
         </div>
-        <div className="hidden xs:flex items-center gap-4">
-          <div className="flex items-baseline gap-1">
-            <span className="text-sm font-semibold text-slate-900">
-              37
-            </span>
-            <span>orders last 7 days</span>
+        <div className="hidden xs:flex items-center gap-6">
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-black text-slate-900">37</span>
+            <span className="font-bold opacity-60">Weekly Orders</span>
           </div>
         </div>
       </header>
 
-      <section className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* Category Sidebar/Top Bar */}
-        <aside className="w-full lg:w-[260px] shrink-0">
-          <div className="flex flex-col gap-4 rounded-3xl bg-white border border-slate-100 p-4 shadow-sm">
+      <section className="flex flex-col lg:flex-row gap-6 items-start animate-reveal">
+        {/* Category Sidebar */}
+        <aside className="w-full lg:w-[260px] shrink-0 animate-reveal animation-delay-200">
+          <div className="flex flex-col gap-6 rounded-[2rem] bg-white border border-slate-100 p-6 shadow-sm">
             <div className="hidden lg:block space-y-1">
-              <p className="text-sm font-semibold text-slate-900">Explore</p>
-              <p className="text-[11px] text-slate-500">Popular products and new drops.</p>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-900">Collections</p>
+              <p className="text-[10px] text-slate-400 font-medium">Curated for your lifestyle.</p>
             </div>
 
-            <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 scrollbar-hide text-xs whitespace-nowrap lg:whitespace-normal">
-              <button className="flex items-center gap-2 lg:justify-between rounded-2xl bg-slate-900 text-white px-4 lg:px-3 py-2 shrink-0">
-                <span>Explore new</span>
-                <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full hidden lg:inline">
-                  Kids & women
+            <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 scrollbar-hide text-[11px] font-bold whitespace-nowrap lg:whitespace-normal">
+              <button className="flex items-center gap-2 lg:justify-between rounded-xl bg-slate-900 text-white px-4 lg:px-3 py-2.5 shrink-0 shadow-lg shadow-slate-900/10">
+                <span>View All Drops</span>
+                <span className="text-[9px] bg-white/10 px-2 py-0.5 rounded-md hidden lg:inline">
+                  NEW
                 </span>
               </button>
               {categoriesList.map(c => (
                 <a
                   key={c.id}
                   href={`/products?category=${c.slug}`}
-                  className="rounded-2xl px-4 lg:px-3 py-2 text-slate-700 hover:bg-slate-50 border border-slate-100 lg:border-none shrink-0"
+                  className="rounded-xl px-4 lg:px-3 py-2.5 text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-slate-100 lg:border-none shrink-0 transition-colors"
                 >
                   {c.name}
                 </a>
               ))}
               {!categoriesList.length && (
                 <>
-                  <button className="rounded-2xl px-4 lg:px-3 py-2 text-slate-700 hover:bg-slate-50 border border-slate-100 lg:border-none shrink-0">Clothing and shoes</button>
-                  <button className="rounded-2xl px-4 lg:px-3 py-2 text-slate-700 hover:bg-slate-50 border border-slate-100 lg:border-none shrink-0">Small bags</button>
-                  <button className="rounded-2xl px-4 lg:px-3 py-2 text-slate-700 hover:bg-slate-50 border border-slate-100 lg:border-none shrink-0">Electronics</button>
+                  <button className="rounded-xl px-4 lg:px-3 py-2.5 text-slate-500 hover:bg-slate-50 border border-slate-100 lg:border-none shrink-0">Clothing & Shoes</button>
+                  <button className="rounded-xl px-4 lg:px-3 py-2.5 text-slate-500 hover:bg-slate-50 border border-slate-100 lg:border-none shrink-0">Luxury Bags</button>
+                  <button className="rounded-xl px-4 lg:px-3 py-2.5 text-slate-500 hover:bg-slate-50 border border-slate-100 lg:border-none shrink-0">Electronics</button>
                 </>
               )}
             </nav>
@@ -103,31 +100,26 @@ export function HomePage() {
         </aside>
 
         <div className="flex-1 w-full space-y-4">
-          <div className="grid xl:grid-cols-[1.5fr,1fr] gap-4">
-            <div className={`rounded-[2.5rem] bg-gradient-to-br from-[#fef3c7] via-[#fce7f3] to-[#e0f2fe] p-6 sm:p-8 flex shadow-sm min-h-[300px] sm:min-h-[340px] relative overflow-hidden ${heroVideoUrl ? 'flex-col md:flex-row gap-8 items-center justify-between' : 'flex-col justify-center'}`}>
+          <div className="grid xl:grid-cols-[1.5fr,1fr] gap-6">
+            <div className={`rounded-[3rem] bg-gradient-to-br from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0] p-8 sm:p-12 flex shadow-2xl shadow-slate-200/50 min-h-[400px] relative overflow-hidden ${heroVideoUrl ? 'flex-col md:flex-row gap-8 items-center justify-between' : 'flex-col justify-center'}`}>
 
-              <div className="relative z-10 space-y-4 max-w-lg w-full flex flex-col justify-center flex-1">
-                <p className="text-[9px] sm:text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] opacity-80">
-                  SPECIAL OFFER · GET UP TO 50% OFF
-                </p>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.1] tracking-tight">
-                  Premium Fashion <br className="hidden sm:block" />
-                  for Everyone.
+              <div className="relative z-10 space-y-6 max-w-xl w-full flex flex-col justify-center flex-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-[10px] font-black text-orange-600 uppercase tracking-widest self-start">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                  Up to 50% Off Collection
+                </div>
+                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-slate-900 leading-[0.95] tracking-tight animate-reveal">
+                  Premium <br /> Apparel <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-indigo-900 to-indigo-600">for All Styles.</span>
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-600 max-w-md font-medium leading-relaxed opacity-90">
-                  Discover the latest arrivals in women's and children's apparel. Minimalist style, maximum comfort.
+                <p className="text-sm font-medium text-slate-500 max-w-md leading-relaxed animate-reveal animation-delay-200">
+                  Discover the latest arrivals in women's and children's apparel. Minimalist style, maximum comfort, and unparalleled quality.
                 </p>
-                <div className="pt-2 flex flex-wrap gap-3">
-                  <a
-                    href="/products"
-                    className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-6 sm:px-8 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all hover:-translate-y-1 active:scale-95 border-b-2 border-slate-700 w-full sm:w-auto text-center"
-                  >
+                <div className="pt-4 flex flex-wrap gap-4 animate-reveal animation-delay-400">
+                  <a href="/products" className="btn-premium-primary shimmer-on-hover">
                     Shop Collection
                   </a>
-                  <a
-                    href="#featured"
-                    className="inline-flex items-center justify-center rounded-2xl bg-white/80 backdrop-blur-md px-6 sm:px-8 py-3 text-sm font-bold text-slate-900 shadow-sm hover:bg-white transition-all hover:-translate-y-1 active:scale-95 border border-slate-100 w-full sm:w-auto text-center"
-                  >
+                  <a href="#featured" className="btn-premium-secondary shimmer-on-hover">
                     View Favorites
                   </a>
                 </div>
@@ -201,40 +193,43 @@ export function HomePage() {
               <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-48 h-48 bg-orange-300/20 rounded-full blur-3xl pointer-events-none" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
-              <div className="rounded-[1.5rem] bg-[#fef3c7] p-5 shadow-sm flex flex-col justify-center h-28 sm:h-auto xl:h-32 group cursor-pointer transition-all hover:shadow-md border border-orange-200/50">
-                <div className="space-y-0.5">
-                  <p className="text-[9px] font-bold text-orange-800 uppercase tracking-wider">New Drop</p>
-                  <p className="text-sm sm:text-base font-black text-slate-900 group-hover:translate-x-1 transition-transform">
-                    Casual & Warm Layers
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4 animate-reveal animation-delay-400">
+              <div className="rounded-[2rem] bg-amber-50 p-6 shadow-sm flex flex-col justify-center h-32 sm:h-auto xl:h-40 group cursor-pointer transition-all hover:shadow-xl hover:shadow-amber-900/5 border border-amber-100 flex-1 shimmer-on-hover">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">New Arrivals</p>
+                  <p className="text-lg font-black text-slate-900 group-hover:translate-x-1 transition-transform">
+                    Casual & Warm <br /> Season Layers
                   </p>
                 </div>
               </div>
-              <div className="rounded-[1.5rem] bg-white border border-slate-100 p-5 shadow-sm flex flex-col justify-center h-28 sm:h-auto xl:h-32 group cursor-pointer transition-all hover:shadow-md">
-                <div className="space-y-0.5">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Bold Style</p>
-                  <p className="text-sm sm:text-base font-black text-slate-900 group-hover:translate-x-1 transition-transform">
-                    Modern Essentials
+              <div className="rounded-[2rem] bg-white border border-slate-100 p-6 shadow-sm flex flex-col justify-center h-32 sm:h-auto xl:h-40 group cursor-pointer transition-all hover:shadow-xl hover:shadow-slate-900/5 flex-1 shimmer-on-hover">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Minimalist</p>
+                  <p className="text-lg font-black text-slate-900 group-hover:translate-x-1 transition-transform">
+                    Modern Essentials <br /> for Her
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          <section id="featured" className="space-y-3 pt-2">
-            <div className="flex items-center justify-between px-1">
-              <div className="space-y-0.5">
-                <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                  Curated Selection
+          <section id="featured" className="space-y-6 pt-12">
+            <div className="flex items-center justify-between px-2">
+              <div className="space-y-1">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  Curated Catalog
                 </h2>
-                <p className="text-[10px] text-slate-500 font-medium lowercase">Our most popular pieces right now</p>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Best sellers this month</p>
+                </div>
               </div>
               <a
                 href="/products"
-                className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-[9px] sm:text-[10px] font-bold text-slate-900 hover:bg-slate-200 transition-colors"
+                className="inline-flex items-center gap-3 rounded-2xl bg-slate-100 px-5 py-2.5 text-xs font-black text-slate-900 hover:bg-slate-200 transition-all active:scale-95"
               >
-                View Catalog
-                <span>→</span>
+                Full Collection
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </a>
             </div>
 

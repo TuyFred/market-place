@@ -70,57 +70,66 @@ export function Navbar() {
     <header className="bg-white/80 backdrop-blur border-b border-slate-100 sticky top-0 z-30">
       <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between h-14 sm:h-16 gap-3">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          <span className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-accent/10 text-accent font-bold text-sm">
-            AM
-          </span>
-          <span className="font-semibold text-slate-900 tracking-tight sm:inline">
-            Ass Market Place
+        <Link to="/" className="flex items-center gap-3 shrink-0 group">
+          <div className="relative">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white font-black text-xs shadow-xl shadow-slate-900/20 group-hover:scale-110 transition-transform">
+              AM
+            </span>
+            <div className="absolute -inset-0.5 bg-gradient-to-tr from-indigo-500 to-orange-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-opacity" />
+          </div>
+          <span className="font-black text-slate-900 tracking-tighter text-lg">
+            Ass Market <span className="text-indigo-600">Place</span>
           </span>
         </Link>
 
         {/* search bar – desktop */}
-        <div ref={searchRef} className="relative flex-1 max-w-xs hidden sm:block">
-          <input
-            type="text"
-            placeholder="Search products…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => results.length > 0 && setShowResults(true)}
-            className="w-full rounded-full bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
-            id="product-search-input"
-          />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none">🔍</span>
+        <div ref={searchRef} className="relative flex-1 max-w-sm hidden md:block px-6">
+          <div className="relative group">
+            <input
+              type="text"
+              placeholder="Search products…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => results.length > 0 && setShowResults(true)}
+              className="w-full rounded-2xl bg-slate-100/50 border border-slate-200/60 px-5 py-2.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all"
+              id="product-search-input"
+            />
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-indigo-500 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </span>
+          </div>
 
           {showResults && results.length > 0 && (
-            <div className="absolute top-full mt-2 w-full rounded-xl bg-white border border-slate-100 shadow-xl py-2 z-50 max-h-80 overflow-auto">
+            <div className="absolute top-full mt-3 w-[calc(100%-3rem)] left-6 rounded-[2rem] bg-white border border-slate-100 shadow-2xl py-3 z-50 max-h-[400px] overflow-auto animate-in fade-in slide-in-from-top-2 duration-300">
               {results.map((p) => (
                 <button
                   key={p.id}
                   type="button"
-                  className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-50 transition-colors"
+                  className="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
                   onClick={() => {
                     setShowResults(false);
                     setQuery('');
                     navigate(`/products?search=${encodeURIComponent(p.name)}`);
                   }}
                 >
-                  {p.imageUrl ? (
-                    <img src={p.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] text-slate-400">IMG</div>
-                  )}
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-100">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">IMG</div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">{p.name}</p>
-                    <p className="text-xs text-slate-500">{p.category} · {new Intl.NumberFormat('en-RW', { style: 'currency', currency: 'RWF', maximumFractionDigits: 0 }).format(p.price)}</p>
+                    <p className="text-sm font-black text-slate-900 truncate">{p.name}</p>
+                    <p className="text-[10px] text-indigo-600 font-black tracking-widest uppercase">{p.category} · {formatRwf(p.price)}</p>
                   </div>
                 </button>
               ))}
             </div>
           )}
           {showResults && query.trim() && results.length === 0 && (
-            <div className="absolute top-full mt-2 w-full rounded-xl bg-white border border-slate-100 shadow-xl py-4 z-50 text-center text-sm text-slate-500">
-              No products found
+            <div className="glass absolute top-full mt-4 w-[calc(100%-3rem)] left-6 rounded-[2rem] shadow-xl py-8 z-50 text-center text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] animate-reveal">
+              No results found for your search
             </div>
           )}
         </div>
@@ -195,11 +204,12 @@ export function Navbar() {
 
           <NavLink
             to="/cart"
-            className="relative inline-flex items-center rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+            className="relative inline-flex items-center gap-3 rounded-2xl bg-slate-900 border border-slate-800 px-5 py-3 text-[11px] font-black uppercase tracking-widest text-white hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-slate-900/20 shimmer-on-hover"
           >
-            Cart
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            Bag
             {totalItems > 0 && (
-              <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent text-[10px] text-white">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-lg bg-indigo-500 text-[10px] text-white font-black shadow-lg shadow-indigo-500/30">
                 {totalItems}
               </span>
             )}
@@ -210,16 +220,16 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="inline-flex items-center rounded-full bg-slate-900 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-slate-800"
+                className="btn-premium-primary !px-6 !py-2.5 !text-[10px]"
               >
                 Sign in
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/register')}
-                className="inline-flex items-center rounded-full border border-slate-200 px-4 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                className="btn-premium-secondary !px-6 !py-2.5 !text-[10px]"
               >
-                Sign up
+                Join
               </button>
             </div>
           ) : (

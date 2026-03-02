@@ -241,7 +241,7 @@ export function AdminDashboardPage() {
       )}
 
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static inset-y-0 left-0 z-40 w-64 flex flex-col transition-transform duration-300 ease-in-out sidebar`}>
+      <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static inset-y-0 left-0 z-40 w-64 flex flex-col transition-transform duration-300 ease-in-out sidebar ${theme === 'dark' ? 'glass-dark' : 'bg-white border-r border-slate-100'}`}>
         <div className="h-16 flex items-center gap-3 px-6 border-b" style={theme === 'dark' ? { borderColor: 'rgba(148,163,184,.06)' } : { borderColor: 'rgba(2,6,23,.04)' }}>
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-sm">KS</span>
           <span className={`${theme === 'dark' ? 'text-white' : 'text-slate-900'} font-semibold tracking-tight`}>Admin Panel</span>
@@ -323,9 +323,8 @@ export function AdminDashboardPage() {
             </div>
           )}
 
-          {/* ── OVERVIEW ── */}
           {tab === 'overview' && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-reveal">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: 'Total Products', value: products.length, sub: `${products.filter(p => p.is_active).length} active`, color: 'from-blue-600 to-indigo-600', icon: '📦' },
@@ -387,7 +386,7 @@ export function AdminDashboardPage() {
 
           {/* ── PRODUCTS ── */}
           {tab === 'products' && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-reveal">
               {/* form */}
               <div className="rounded-2xl p-5 border card">
                 <h3 className="text-sm font-semibold text-white mb-4">{editingProd ? 'Edit Product' : 'Add New Product'}</h3>
@@ -451,8 +450,8 @@ export function AdminDashboardPage() {
               </div>
 
               {/* table */}
-              <div className="rounded-2xl border overflow-hidden card">
-                <div className="overflow-x-auto table-container table-zebra">
+              <div className="premium-card !rounded-[2rem] overflow-hidden">
+                <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-800 text-left text-[10px] uppercase tracking-wider text-slate-400">
@@ -465,7 +464,7 @@ export function AdminDashboardPage() {
                     </thead>
                     <tbody>
                       {products.slice((productsPage - 1) * pageSize, productsPage * pageSize).map((p) => (
-                        <tr key={p.id} className="border-b border-slate-800/50 transition-colors hover:bg-white/5">
+                        <tr key={p.id} className={`border-b border-slate-800/50 transition-colors ${theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-3">
                               <div className="relative group cursor-pointer" onClick={() => { setViewingProd(p); setViewingImageIdx(0); setViewingRotation(0); }}>

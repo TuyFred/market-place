@@ -59,7 +59,7 @@ export function CustomerDashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-5xl">
+    <div className="container mx-auto px-4 py-12 max-w-5xl animate-reveal">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div>
           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500 mb-2 block">Customer Portal</span>
@@ -94,7 +94,7 @@ export function CustomerDashboardPage() {
         ) : orders.length > 0 ? (
           <div className="grid gap-6">
             {orders.map((order) => (
-              <div key={order.id} className="group bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden flex flex-col md:flex-row">
+              <div key={order.id} className="group premium-card !rounded-[2rem] flex flex-col md:flex-row animate-reveal">
                 {/* Product Detail Section */}
                 <div className="p-8 flex-1 border-r border-slate-50">
                   <div className="flex items-center justify-between mb-4">
@@ -138,7 +138,7 @@ export function CustomerDashboardPage() {
                       </div>
                       <a
                         href={`/track?id=${order.id}`}
-                        className="block w-full text-center py-3 rounded-xl bg-white border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition-all active:scale-95"
+                        className="block w-full text-center py-3 rounded-xl bg-white border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50 transition-all active:scale-95 shimmer-on-hover"
                       >
                         Detailed Status
                       </a>

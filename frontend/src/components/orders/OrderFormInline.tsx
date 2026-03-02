@@ -105,7 +105,7 @@ export function OrderFormInline({ product }: Props) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-4 text-xs font-black text-white shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-60"
+        className="shimmer-on-hover w-full inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-4 text-xs font-black text-white shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-60"
       >
         {submitting ? (
           <>
