@@ -220,70 +220,151 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </article>
 
-      {/* Modal Gallery */}
+      {/* Modal Gallery / Details Viewer */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm transition-all duration-300">
-          <div className="absolute right-8 top-8 z-[110] flex gap-2">
-            <button
-              onClick={handleRotate}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 active:scale-90"
-              title="Rotate image"
-            >
-              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            </button>
-            <button
-              onClick={() => setShowModal(false)}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 active:scale-90"
-              aria-label="Close modal"
-            >
-              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md" onClick={() => setShowModal(false)} />
 
-          <div className="relative flex h-full w-full items-center justify-center px-4 md:px-20">
-            {displayImages.length > 1 && (
-              <>
+          <div className="relative w-full max-w-6xl max-h-[95vh] overflow-hidden rounded-[2.5rem] bg-white border border-slate-200 shadow-2xl flex flex-col lg:flex-row">
+            {/* Left: Image / Gallery Section */}
+            <div className="flex-1 relative bg-slate-50 flex flex-col min-h-[350px]">
+              <div className="absolute top-6 left-6 z-10 flex gap-2">
                 <button
-                  onClick={() => setCurrentIndex((currentIndex - 1 + displayImages.length) % displayImages.length)}
-                  className="absolute left-6 top-1/2 z-[110] -translate-y-1/2 flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 md:left-12"
-                  aria-label="Previous image"
+                  onClick={handleRotate}
+                  className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/80 text-slate-800 backdrop-blur-md hover:bg-white shadow-lg transition-all active:scale-90"
+                  title="Rotate image"
                 >
-                  <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </button>
-                <button
-                  onClick={() => setCurrentIndex((currentIndex + 1) % displayImages.length)}
-                  className="absolute right-6 top-1/2 z-[110] -translate-y-1/2 flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 md:right-12"
-                  aria-label="Next image"
-                >
-                  <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
-                </button>
-              </>
-            )}
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="absolute top-6 right-6 z-10 h-12 w-12 flex items-center justify-center rounded-2xl bg-white/80 text-slate-800 backdrop-blur-md hover:bg-white shadow-lg transition-all active:scale-90 lg:hidden"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
 
-            <div className="flex h-full w-full items-center justify-center p-4">
-              <img
-                src={displayImages[currentIndex]}
-                alt={`${product.name} - Full screen`}
-                style={{ transform: `rotate(${rotations[currentIndex] || 0}deg)` }}
-                className="max-h-[85vh] max-w-full rounded-3xl object-contain shadow-[0_0_80px_rgba(0,0,0,0.5)] transition-all duration-500"
-              />
+              <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
+                <img
+                  src={displayImages[currentIndex]}
+                  className="max-w-full max-h-full object-contain transition-all duration-500 shadow-2xl rounded-3xl"
+                  style={{ transform: `rotate(${rotations[currentIndex] || 0}deg)` }}
+                  alt={`${product.name} gallery`}
+                />
+              </div>
+
+              {/* Navigation Arrows */}
+              {displayImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentIndex((currentIndex - 1 + displayImages.length) % displayImages.length)}
+                    className="absolute left-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-xl transition-all hover:bg-white active:scale-90"
+                  >
+                    <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                  </button>
+                  <button
+                    onClick={() => setCurrentIndex((currentIndex + 1) % displayImages.length)}
+                    className="absolute right-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-xl transition-all hover:bg-white active:scale-90"
+                  >
+                    <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                </>
+              )}
+
+              {/* Modal Thumbnails */}
+              {displayImages.length > 1 && (
+                <div className="p-6 flex justify-center gap-3 overflow-x-auto scrollbar-hide bg-white/50 backdrop-blur-sm border-t border-slate-200/50">
+                  {displayImages.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentIndex(i)}
+                      className={`h-20 w-20 rounded-2xl overflow-hidden border-4 transition-all shrink-0 ${currentIndex === i ? 'border-orange-500 scale-110 shadow-lg' : 'border-white opacity-60 hover:opacity-100 hover:scale-105'}`}
+                    >
+                      <img src={img} className="w-full h-full object-cover" alt="" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Modal Thumbnails */}
-            {displayImages.length > 1 && (
-              <div className="absolute bottom-10 left-1/2 flex -translate-x-1/2 gap-3 z-[110] max-w-[90vw] overflow-x-auto pb-4 scrollbar-hide">
-                {displayImages.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-4 transition-all duration-300 ${idx === currentIndex ? 'border-orange-500 scale-110 shadow-lg' : 'border-white/20 opacity-40 hover:opacity-100'
-                      }`}
-                  >
-                    <img src={img} className="h-full w-full object-cover" alt={`Thumbnail ${idx + 1}`} />
-                  </button>
-                ))}
+            {/* Right: Detailed Info Section */}
+            <div className="w-full lg:w-[450px] p-8 sm:p-10 flex flex-col gap-8 overflow-y-auto bg-white border-l border-slate-100">
+              <div className="flex justify-between items-start">
+                <div className="space-y-3">
+                  <span className="inline-flex items-center rounded-2xl bg-orange-50 px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-orange-600 border border-orange-100">
+                    {product.category}
+                  </span>
+                  <h2 className="text-3xl font-black text-slate-900 leading-tight tracking-tight">
+                    {product.name}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="hidden lg:flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all active:scale-95"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               </div>
-            )}
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between p-6 rounded-3xl bg-slate-50 border border-slate-100 shadow-inner">
+                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Price</span>
+                  <span className="text-3xl font-black text-slate-900">
+                    {formatRwf(product.price)}
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Product Details</h4>
+                  <p className="text-sm leading-relaxed text-slate-600 font-medium">
+                    {product.description || 'No description available for this product. Our items are crafted with quality and care to ensure the best experience for our customers.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-auto space-y-4 pt-6">
+                <button
+                  onClick={handleAddToCart}
+                  className={`w-full flex items-center justify-center gap-3 rounded-2xl py-4 text-xs font-black tracking-wide transition-all duration-300 active:scale-95 shadow-xl ${added
+                    ? 'bg-emerald-600 text-white shadow-emerald-500/30'
+                    : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/40'
+                    }`}
+                >
+                  {added ? (
+                    <>
+                      <svg className="h-5 w-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                      Added to Your Cart
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                      Add to Shopping Cart
+                    </>
+                  )}
+                </button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={handleWhatsApp}
+                    className="flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-4 py-3.5 text-[11px] font-black text-white shadow-lg shadow-[#25D366]/20 transition-all hover:bg-[#128C7E] active:scale-95"
+                  >
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                    WhatsApp Chat
+                  </button>
+                  <button
+                    onClick={handleEmail}
+                    className="flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3.5 text-[11px] font-black text-white shadow-lg shadow-orange-500/20 transition-all hover:bg-orange-600 active:scale-95"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Send Inquiry
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

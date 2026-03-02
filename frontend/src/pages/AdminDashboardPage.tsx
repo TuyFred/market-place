@@ -39,6 +39,9 @@ export function AdminDashboardPage() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
   const [heroVideoUrl, setHeroVideoUrl] = useState('');
+  const [viewingProd, setViewingProd] = useState<Product | null>(null);
+  const [viewingImageIdx, setViewingImageIdx] = useState(0);
+  const [viewingRotation, setViewingRotation] = useState(0);
 
   /* pagination */
   const [productsPage, setProductsPage] = useState(1);
@@ -465,9 +468,9 @@ export function AdminDashboardPage() {
                         <tr key={p.id} className="border-b border-slate-800/50 transition-colors hover:bg-white/5">
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-3">
-                              <div className="relative group cursor-pointer" onClick={() => { setEditingProd(p.id); setProdForm(p); }}>
+                              <div className="relative group cursor-pointer" onClick={() => { setViewingProd(p); setViewingImageIdx(0); setViewingRotation(0); }}>
                                 {p.imageUrl ? (
-                                  <img src={p.imageUrl} className="w-10 h-10 rounded-xl object-cover border border-slate-700 shadow-sm" alt="" />
+                                  <img src={p.imageUrl} className="w-10 h-10 rounded-xl object-cover border border-slate-700 shadow-sm group-hover:scale-105 transition-transform" alt="" />
                                 ) : (
                                   <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] text-slate-500 font-bold">NO IMG</div>
                                 )}
@@ -477,8 +480,8 @@ export function AdminDashboardPage() {
                                   </span>
                                 )}
                               </div>
-                              <div className="flex flex-col min-w-0">
-                                <span className="text-slate-200 font-bold text-sm truncate">{p.name}</span>
+                              <div className="flex flex-col min-w-0 cursor-pointer" onClick={() => { setViewingProd(p); setViewingImageIdx(0); setViewingRotation(0); }}>
+                                <span className="text-slate-200 font-bold text-sm truncate group-hover:text-indigo-400 transition-colors">{p.name}</span>
                                 <span className="text-[10px] text-slate-500 truncate max-w-[150px]">{p.description || 'No description'}</span>
                               </div>
                             </div>
@@ -768,6 +771,124 @@ export function AdminDashboardPage() {
       </div>
 
       {/* Sidebar Mobile Overlay handled at top */}
+
+      {/* ── Product Details Modal ── */}
+      {viewingProd && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => setViewingProd(null)} />
+
+          <div className={`relative w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[2.5rem] border shadow-2xl flex flex-col md:flex-row ${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            {/* Left: Image Section */}
+            <div className="flex-1 relative bg-black/20 flex flex-col min-h-[300px]">
+              <div className="absolute top-6 left-6 z-10 flex gap-2">
+                <button
+                  onClick={() => setViewingRotation(r => r + 90)}
+                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/10 text-white backdrop-blur-md hover:bg-white/20 transition-all"
+                  title="Rotate image"
+                >
+                  <span className="text-lg">🔄</span>
+                </button>
+              </div>
+              <button
+                onClick={() => setViewingProd(null)}
+                className="absolute top-6 right-6 z-10 h-10 w-10 flex items-center justify-center rounded-xl bg-white/10 text-white backdrop-blur-md hover:bg-white/20 transition-all md:hidden"
+              >
+                ✕
+              </button>
+
+              <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
+                {(() => {
+                  const imgs = (viewingProd.imageUrls && viewingProd.imageUrls.length > 0) ? viewingProd.imageUrls : [viewingProd.imageUrl].filter(Boolean) as string[];
+                  const currentImg = imgs[viewingImageIdx] || 'https://placehold.co/600x400?text=No+Image';
+                  return (
+                    <img
+                      src={currentImg}
+                      className="max-w-full max-h-full object-contain transition-transform duration-500 shadow-2xl rounded-2xl"
+                      style={{ transform: `rotate(${viewingRotation}deg)` }}
+                      alt={viewingProd.name}
+                    />
+                  );
+                })()}
+              </div>
+
+              {/* Thumbnails */}
+              {viewingProd.imageUrls && viewingProd.imageUrls.length > 1 && (
+                <div className="p-4 flex justify-center gap-2 overflow-x-auto scrollbar-hide">
+                  {viewingProd.imageUrls.map((img, i) => (
+                    <button
+                      key={img}
+                      onClick={() => { setViewingImageIdx(i); setViewingRotation(0); }}
+                      className={`h-14 w-14 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${viewingImageIdx === i ? 'border-amber-500 scale-110 shadow-lg' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                    >
+                      <img src={img} className="w-full h-full object-cover" alt="" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Info Section */}
+            <div className="w-full md:w-[400px] p-8 flex flex-col gap-6 overflow-y-auto border-l border-slate-800/50">
+              <div className="flex justify-between items-start">
+                <div>
+                  <span className="inline-flex items-center rounded-lg bg-indigo-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-indigo-400 border border-indigo-500/20 mb-3">
+                    {viewingProd.category}
+                  </span>
+                  <h2 className={`text-2xl font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                    {viewingProd.name}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setViewingProd(null)}
+                  className={`h-10 w-10 hidden md:flex items-center justify-center rounded-xl transition-all ${theme === 'dark' ? 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 shadow-inner">
+                  <span className="text-xs font-bold text-amber-500/80 uppercase">Price</span>
+                  <span className={`text-2xl font-black ${theme === 'dark' ? 'text-amber-400' : 'text-amber-600'}`}>
+                    {formatRwf(viewingProd.price)}
+                  </span>
+                </div>
+
+                <div className={`p-4 rounded-2xl border ${theme === 'dark' ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Description</h4>
+                  <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {viewingProd.description || 'No description provided for this product.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className={`p-4 rounded-2xl border ${theme === 'dark' ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Stock</h4>
+                    <span className={`text-lg font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                      {viewingProd.stock ?? 0}
+                    </span>
+                  </div>
+                  <div className={`p-4 rounded-2xl border ${theme === 'dark' ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Active</h4>
+                    <span className={`text-lg font-black ${viewingProd.is_active ? 'text-emerald-500' : 'text-red-500'}`}>
+                      {viewingProd.is_active ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-auto flex gap-3">
+                <button
+                  onClick={() => { setViewingProd(null); setEditingProd(viewingProd.id); setProdForm(viewingProd); }}
+                  className="flex-1 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                >
+                  Edit Product
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
