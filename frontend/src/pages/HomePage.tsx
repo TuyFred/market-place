@@ -126,8 +126,13 @@ export function HomePage() {
               </div>
 
               {heroVideoUrl && (
-                <div className="relative z-10 w-full md:w-1/2 flex items-center justify-center h-full max-h-[250px] md:max-h-full shrink-0">
-                  <div className="relative w-full h-full aspect-video md:aspect-[4/3] rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/40 transform hover:scale-[1.01] transition-transform duration-700 group bg-slate-100 ring-1 ring-slate-900/5">
+                <div className="relative z-10 w-full md:w-[42%] flex items-center justify-center h-full max-h-[300px] md:max-h-full shrink-0">
+                  <div className="relative w-full aspect-square md:aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.15)] border border-white/50 transform hover:scale-[1.02] transition-all duration-700 group bg-slate-100 ring-1 ring-slate-900/5">
+                    {/* Floating Badge */}
+                    <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/50 shadow-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-900">Live Preview</span>
+                    </div>
                     <video
                       ref={videoRef}
                       src={heroVideoUrl}
