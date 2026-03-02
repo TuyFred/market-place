@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { formatRwf } from '../../utils/format';
 import { CONTACT_RAW, INQUIRY_EMAIL } from '../../utils/whatsapp';
 import { useState, useRef, useEffect } from 'react';
-import { OrderFormInline } from '../orders/OrderFormInline';
 
 export type Product = {
   id: string;
@@ -342,10 +341,6 @@ export function ProductCard({ product }: ProductCardProps) {
                     </>
                   )}
                 </button>
-
-                <div className="pt-4 border-t border-slate-100/50">
-                  <OrderFormInline product={product} />
-                </div>
 
                 <div className="grid grid-cols-2 gap-3 pt-6 border-t border-slate-100/50">
                   <button
