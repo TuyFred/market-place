@@ -102,14 +102,25 @@ export function ProductCard({ product }: ProductCardProps) {
           >
             {displayImages.map((img, idx) => (
               <div key={idx} className="h-full w-full shrink-0 snap-center">
-                <Link to={`/product/${product.id}`} className="block h-full w-full">
-                  <img
-                    src={img}
-                    alt={`${product.name} - ${idx + 1}`}
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    loading="lazy"
-                  />
-                </Link>
+                <div className="relative h-full w-full">
+                  <Link to={`/product/${product.id}`} className="block h-full w-full">
+                    <img
+                      src={img}
+                      alt={`${product.name} - ${idx + 1}`}
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  </Link>
+
+                  {/* Open current image in new tab */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); window.open(img, '_blank', 'noopener,noreferrer'); }}
+                    className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-md hover:scale-105 transition-transform"
+                    title="Open image in new tab"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3h6v6m0-6L10 14" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21H3V3" /></svg>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
