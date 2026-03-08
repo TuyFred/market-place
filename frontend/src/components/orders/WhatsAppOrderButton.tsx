@@ -8,7 +8,7 @@ type Props = {
 
 export function WhatsAppOrderButton({ product }: Props) {
   const handleClick = async () => {
-    const digits = CONTACT_RAW;
+    const digits = CONTACT_RAW.replace(/^\+/, '');
     if (!digits) {
       alert('WhatsApp number is not configured correctly.');
       return;

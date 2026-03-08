@@ -34,6 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
     : (product.imageUrl ? [product.imageUrl] : ['https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image']);
 
   const [rotations, setRotations] = useState<Record<number, number>>({});
+  const [scales, setScales] = useState<Record<number, number>>({});
 
   const handleRotate = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,6 +42,18 @@ export function ProductCard({ product }: ProductCardProps) {
       ...prev,
       [currentIndex]: (prev[currentIndex] || 0) + 90
     }));
+  };
+
+  const handleZoom = (delta: number) => {
+    setScales((prev) => ({
+      ...prev,
+      [currentIndex]: Math.max(0.5, Math.min(4, (prev[currentIndex] || 1) + delta))
+    }));
+  };
+
+  const handleResetView = () => {
+    setScales((prev) => ({ ...prev, [currentIndex]: 1 }));
+    setRotations((prev) => ({ ...prev, [currentIndex]: 0 }));
   };
 
   const scrollToImage = (index: number) => {
@@ -67,7 +80,8 @@ export function ProductCard({ product }: ProductCardProps) {
     const productUrl = `${window.location.origin}/products?search=${encodeURIComponent(product.name)}`;
     const priceText = formatRwf(product.price);
     const message = `*I'm interested in this product*\n\n*Name:* ${product.name}\n*Price:* ${priceText}\n*Category:* ${product.category}\n*Link:* ${productUrl}\n\n${displayImages[currentIndex]}`;
-    const whatsappUrl = `https://wa.me/${CONTACT_RAW}?text=${encodeURIComponent(message)}`;
+    const digits = CONTACT_RAW.replace(/^\+/, '');
+    const whatsappUrl = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -260,6 +274,27 @@ export function ProductCard({ product }: ProductCardProps) {
                 >
                   <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleZoom(0.25); }}
+                  className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-2xl bg-white/90 text-slate-800 backdrop-blur-md hover:bg-white shadow-xl transition-all active:scale-90 border border-slate-200/50"
+                  title="Zoom in"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14m-7-7h14" /></svg>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleZoom(-0.25); }}
+                  className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-2xl bg-white/90 text-slate-800 backdrop-blur-md hover:bg-white shadow-xl transition-all active:scale-90 border border-slate-200/50"
+                  title="Zoom out"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" /></svg>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleResetView(); }}
+                  className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-2xl bg-white/90 text-slate-800 backdrop-blur-md hover:bg-white shadow-xl transition-all active:scale-90 border border-slate-200/50"
+                  title="Reset view"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6"/><path strokeLinecap="round" strokeLinejoin="round" d="M20 20v-6h-6"/></svg>
+                </button>
                 <div className="glass px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-white/90 shadow-xl border border-indigo-100/50">
                   {product.category}
                 </div>
@@ -279,8 +314,8 @@ export function ProductCard({ product }: ProductCardProps) {
 
                 <img
                   src={displayImages[currentIndex]}
-                  className="max-w-[90%] max-h-[80%] lg:max-w-full lg:max-h-full object-contain transition-all duration-700 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.25)] rounded-[2.5rem] relative z-10 hover:scale-[1.02]"
-                  style={{ transform: `rotate(${rotations[currentIndex] || 0}deg)` }}
+                  className="max-w-[90%] max-h-[80%] lg:max-w-full lg:max-h-full object-contain transition-all duration-200 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.25)] rounded-[2.5rem] relative z-10"
+                  style={{ transform: `rotate(${rotations[currentIndex] || 0}deg) scale(${scales[currentIndex] || 1})` }}
                   alt={`${product.name} gallery`}
                 />
 

@@ -64,7 +64,7 @@ export function CartPage() {
 
   const handleWhatsAppCart = () => {
     if (!items.length) return;
-    const digits = CONTACT_RAW;
+    const digits = CONTACT_RAW.replace(/^\+/, '');
     if (!digits) {
       alert('WhatsApp number is not configured.');
       return;

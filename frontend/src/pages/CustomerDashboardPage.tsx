@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { CONTACT_RAW } from '../utils/whatsapp';
 import { formatRwf } from '../utils/format';
 
 type CustomerOrder = {
@@ -67,7 +68,9 @@ export function CustomerDashboardPage() {
           <p className="text-slate-500 font-medium mt-2">Manage your orders and track your shopping journey.</p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
+          <a href={`https://wa.me/${(CONTACT_RAW||'').replace(/\D/g,'')}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-emerald-600 hover:text-emerald-700">Contact Support</a>
+          <div className="flex gap-3">
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex-1 md:w-32">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Orders</p>
             <p className="text-2xl font-black text-slate-900">{orders.length}</p>
