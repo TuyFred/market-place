@@ -145,3 +145,32 @@ export async function updateUserRole(userId, role) {
     fullName: data.user.user_metadata?.full_name || ''
   };
 }
+
+export async function resetUserPassword(userId, newPassword) {
+  if (!supabaseAdmin) {
+    throw notConfiguredError;
+  }
+
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+    const err = new Error('Password must be at least 6 characters');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    password: newPassword
+  });
+
+  if (error) {
+    const err = new Error(error.message);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  return {
+    id: data.user.id,
+    email: data.user.email,
+    role: data.user.user_metadata?.role || 'customer',
+    fullName: data.user.user_metadata?.full_name || ''
+  };
+}

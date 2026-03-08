@@ -162,6 +162,19 @@ export function AdminDashboardPage() {
     try { await axios.put(`/api/auth/users/${id}/role`, { role }, { headers: authHeaders() }); await fetchAll(); } catch { setMsg('Error updating role'); }
   };
 
+  /* ── Reset user password (admin) ── */
+  const resetPassword = async (id: string) => {
+    const pwd = prompt('Enter new password for this user (min 6 chars):');
+    if (!pwd) return;
+    try {
+      await axios.put(`/api/auth/users/${id}/reset-password`, { password: pwd }, { headers: authHeaders() });
+      setMsg('Password reset successfully');
+      await fetchAll();
+    } catch (e: any) {
+      setMsg(e?.response?.data?.message || 'Could not reset password');
+    }
+  };
+
   /* upload image file(s) */
   const uploadFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -742,15 +755,25 @@ export function AdminDashboardPage() {
                         </td>
                         <td className="px-4 py-1.5 text-right">
                           {storedUser?.role === 'admin' && (
-                            <select
-                              className="rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px] px-1.5 py-0.5 focus:outline-none"
-                              value={u.role}
-                              onChange={(e) => changeRole(u.id, e.target.value)}
-                            >
-                              <option value="customer">Customer</option>
-                              <option value="manager">Manager</option>
-                              <option value="admin">Admin</option>
-                            </select>
+                            <div className="inline-flex items-center gap-2">
+                              <select
+                                className="rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px] px-1.5 py-0.5 focus:outline-none"
+                                value={u.role}
+                                onChange={(e) => changeRole(u.id, e.target.value)}
+                              >
+                                <option value="customer">Customer</option>
+                                <option value="manager">Manager</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => resetPassword(u.id)}
+                                className="px-2 py-1 rounded bg-amber-500 text-white text-[10px] hover:opacity-90"
+                                title="Reset password"
+                              >
+                                Reset
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

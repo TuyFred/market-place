@@ -3,6 +3,7 @@ import {
   loginHandler,
   listUsersHandler,
   updateUserRoleHandler
+  , resetUserPasswordHandler
 } from '../../controllers/auth.controller.js';
 import { authGuard } from '../../middlewares/auth.guard.js';
 import { adminGuard } from '../../middlewares/admin.guard.js';
@@ -138,5 +139,35 @@ export async function authRoutes(fastify) {
       }
     },
     updateUserRoleHandler
+  );
+
+  fastify.put(
+    '/users/:id/reset-password',
+    {
+      preHandler: [authGuard, adminGuard],
+      schema: {
+        tags: ['Users'],
+        body: {
+          type: 'object',
+          required: ['password'],
+          properties: {
+            password: { type: 'string', minLength: 6 }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              email: { type: 'string' },
+              role: { type: 'string' },
+              fullName: { type: 'string' }
+            }
+          },
+          400: errorResponseSchema
+        }
+      }
+    },
+    resetUserPasswordHandler
   );
 }

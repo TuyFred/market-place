@@ -1,5 +1,6 @@
 import {
   getProductsHandler,
+  getProductByIdHandler,
   createProductHandler,
   updateProductHandler,
   deleteProductHandler,
@@ -18,6 +19,8 @@ import { adminGuard } from '../../middlewares/admin.guard.js';
 
 export async function productsRoutes(fastify) {
   fastify.get('/', { schema: listProductsSchema }, getProductsHandler);
+
+  fastify.get('/:id', {}, getProductByIdHandler);
 
   fastify.post(
     '/',

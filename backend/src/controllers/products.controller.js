@@ -8,6 +8,17 @@ import { getProductById } from '../services/products.service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { uploadImage } from '../utils/upload.js';
 
+export async function getProductByIdHandler(request, reply) {
+  try {
+    const { id } = request.params;
+    const product = await getProductById(id);
+    return sendSuccess(reply, 200, product);
+  } catch (err) {
+    const statusCode = err.statusCode || 404;
+    return sendError(reply, statusCode, err.message || 'Product not found');
+  }
+}
+
 export async function getProductsHandler(request, reply) {
   try {
     const products = await listProducts(request.query);

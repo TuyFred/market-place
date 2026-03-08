@@ -1,6 +1,6 @@
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { formatRwf } from '../../utils/format';
 import { CONTACT_RAW, INQUIRY_EMAIL } from '../../utils/whatsapp';
 import { useState, useRef, useEffect } from 'react';
@@ -93,7 +93,7 @@ export function ProductCard({ product }: ProductCardProps) {
     <>
       <article className="premium-card group relative flex flex-col">
         {/* Image Slider Section */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 cursor-pointer" onClick={() => setShowModal(true)}>
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50">
           <div
             ref={sliderRef}
             onScroll={handleScroll}
@@ -102,12 +102,14 @@ export function ProductCard({ product }: ProductCardProps) {
           >
             {displayImages.map((img, idx) => (
               <div key={idx} className="h-full w-full shrink-0 snap-center">
-                <img
-                  src={img}
-                  alt={`${product.name} - ${idx + 1}`}
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading="lazy"
-                />
+                <Link to={`/product/${product.id}`} className="block h-full w-full">
+                  <img
+                    src={img}
+                    alt={`${product.name} - ${idx + 1}`}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                </Link>
               </div>
             ))}
           </div>

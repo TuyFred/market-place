@@ -1,4 +1,5 @@
 import { registerCustomer, loginUser, listUsers, updateUserRole } from '../services/auth.service.js';
+import { resetUserPassword } from '../services/auth.service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 
 export async function registerHandler(request, reply) {
@@ -34,6 +35,18 @@ export async function listUsersHandler(request, reply) {
 export async function updateUserRoleHandler(request, reply) {
   try {
     const user = await updateUserRole(request.params.id, request.body.role);
+    return sendSuccess(reply, 200, user);
+  } catch (err) {
+    const statusCode = err.statusCode || 400;
+    return sendError(reply, statusCode, err.message);
+  }
+}
+
+export async function resetUserPasswordHandler(request, reply) {
+  try {
+    const userId = request.params.id;
+    const { password } = request.body;
+    const user = await resetUserPassword(userId, password);
     return sendSuccess(reply, 200, user);
   } catch (err) {
     const statusCode = err.statusCode || 400;
