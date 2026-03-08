@@ -87,6 +87,7 @@ export function ProductPage() {
             <button onClick={() => zoom(-0.25)} className="bg-white p-2 rounded shadow">−</button>
             <button onClick={() => rotate(90)} className="bg-white p-2 rounded shadow">↻</button>
             <button onClick={resetView} className="bg-white p-2 rounded shadow">Reset</button>
+            <button onClick={() => window.open(product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[currentIndex] : (product.imageUrl || ''), '_blank', 'noopener,noreferrer')} className="bg-white p-2 rounded shadow" title="Open image in new tab">⤓</button>
           </div>
         </div>
         <div className="space-y-4">
@@ -102,7 +103,14 @@ export function ProductPage() {
             >
               Add to bag
             </button>
-            <a href={`https://wa.me/${CONTACT_RAW.replace(/^\+/, '')}`} className="block text-center text-sm text-emerald-600">Contact on WhatsApp</a>
+            <a
+              href={`https://wa.me/${CONTACT_RAW.replace(/^\+/, '')}?text=${encodeURIComponent(`I'm interested in this product:\n\nName: ${product.name}\nPrice: ${product.price}\nCategory: ${product.category || 'N/A'}\n\nProduct link: ${window.location.origin}/product/${product.id}\nImage: ${product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[currentIndex] : (product.imageUrl || '')}`)}`}
+              className="block text-center text-sm text-emerald-600"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Contact on WhatsApp
+            </a>
           </div>
         </div>
       </div>

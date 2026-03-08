@@ -77,9 +77,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const productUrl = `${window.location.origin}/products?search=${encodeURIComponent(product.name)}`;
+    const productUrl = `${window.location.origin}/product/${product.id}`;
     const priceText = formatRwf(product.price);
-    const message = `*I'm interested in this product*\n\n*Name:* ${product.name}\n*Price:* ${priceText}\n*Category:* ${product.category}\n*Link:* ${productUrl}\n\n${displayImages[currentIndex]}`;
+    const message = `I'm interested in this product.\n\nName: ${product.name}\nPrice: ${product.price}\nCategory: ${product.category || 'N/A'}\n\nPlease send more information and the product link:\n${productUrl}\nImage:\n${displayImages[currentIndex]}`;
     const digits = CONTACT_RAW.replace(/^\+/, '');
     const whatsappUrl = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
@@ -133,6 +133,14 @@ export function ProductCard({ product }: ProductCardProps) {
                     title="Open image in new tab"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3h6v6m0-6L10 14" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21H3V3" /></svg>
+                  </button>
+                  {/* Preview modal button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowModal(true); setCurrentIndex(idx); }}
+                    className="absolute right-3 top-12 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-md hover:scale-105 transition-transform"
+                    title="Preview"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                   </button>
                 </div>
               </div>
@@ -294,6 +302,13 @@ export function ProductCard({ product }: ProductCardProps) {
                   title="Reset view"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6"/><path strokeLinecap="round" strokeLinejoin="round" d="M20 20v-6h-6"/></svg>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); window.open(displayImages[currentIndex], '_blank', 'noopener,noreferrer'); }}
+                  className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-2xl bg-white/90 text-slate-800 backdrop-blur-md hover:bg-white shadow-xl transition-all active:scale-90 border border-slate-200/50"
+                  title="Open image in new tab"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3h6v6m0-6L10 14" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21H3V3" /></svg>
                 </button>
                 <div className="glass px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-white/90 shadow-xl border border-indigo-100/50">
                   {product.category}
