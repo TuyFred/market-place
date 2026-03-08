@@ -51,6 +51,12 @@ export function ProductPage() {
     );
   }
 
+  // Prepare absolute image URL and WhatsApp href for the current product view
+  const raw = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[currentIndex] : (product.imageUrl || '');
+  const imgUrl = raw.startsWith('http') || raw.startsWith('//') ? raw : `${window.location.origin}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  const waMessage = `I'm interested in this product:\n\nName: ${product.name}\nPrice: ${product.price}\nCategory: ${product.category || 'N/A'}\n\nProduct link: ${window.location.origin}/product/${product.id}\nImage: ${imgUrl}`;
+  const waHref = `https://wa.me/${CONTACT_RAW.replace(/^\+/, '')}?text=${encodeURIComponent(waMessage)}`;
+
   return (
     <section className="space-y-6">
       <div className="flex items-center justify-between">
@@ -103,22 +109,14 @@ export function ProductPage() {
             >
               Add to bag
             </button>
-            {(() => {
-              const raw = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[currentIndex] : (product.imageUrl || '');
-              const imgUrl = raw.startsWith('http') || raw.startsWith('//') ? raw : `${window.location.origin}${raw.startsWith('/') ? '' : '/'}${raw}`;
-              const waMessage = `I'm interested in this product:\n\nName: ${product.name}\nPrice: ${product.price}\nCategory: ${product.category || 'N/A'}\n\nProduct link: ${window.location.origin}/product/${product.id}\nImage: ${imgUrl}`;
-              return (
-                <a
-                  href={`https://wa.me/${CONTACT_RAW.replace(/^\+/, '')}?text=${encodeURIComponent(waMessage)}`}
-                  className="block text-center text-sm text-emerald-600"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Contact on WhatsApp
-                </a>
-              );
-            })()}
-          </div>
+            <a
+              href={waHref}
+              className="block text-center text-sm text-emerald-600"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Contact on WhatsApp
+            </a>
           </div>
         </div>
       </div>
