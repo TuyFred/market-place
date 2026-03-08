@@ -78,8 +78,9 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     const productUrl = `${window.location.origin}/product/${product.id}`;
-    const priceText = formatRwf(product.price);
-    const message = `I'm interested in this product.\n\nName: ${product.name}\nPrice: ${product.price}\nCategory: ${product.category || 'N/A'}\n\nPlease send more information and the product link:\n${productUrl}\nImage:\n${displayImages[currentIndex]}`;
+    const rawImage = displayImages[currentIndex] || '';
+    const absoluteImage = rawImage.startsWith('http') || rawImage.startsWith('//') ? rawImage : `${window.location.origin}${rawImage.startsWith('/') ? '' : '/'}${rawImage}`;
+    const message = `I'm interested in this product.\n\nName: ${product.name}\nPrice: ${product.price}\nCategory: ${product.category || 'N/A'}\n\nPlease send more information and the product link:\n${productUrl}\nImage:\n${absoluteImage}`;
     const digits = CONTACT_RAW.replace(/^\+/, '');
     const whatsappUrl = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
@@ -128,7 +129,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
                   {/* Open current image in new tab */}
                   <button
-                    onClick={(e) => { e.stopPropagation(); window.open(img, '_blank', 'noopener,noreferrer'); }}
+                    onClick={(e) => { e.stopPropagation(); const src = img.startsWith('http') || img.startsWith('//') ? img : `${window.location.origin}${img.startsWith('/') ? '' : '/'}${img}`; window.open(src, '_blank', 'noopener,noreferrer'); }}
                     className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-md hover:scale-105 transition-transform"
                     title="Open image in new tab"
                   >
@@ -304,7 +305,7 @@ export function ProductCard({ product }: ProductCardProps) {
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6"/><path strokeLinecap="round" strokeLinejoin="round" d="M20 20v-6h-6"/></svg>
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); window.open(displayImages[currentIndex], '_blank', 'noopener,noreferrer'); }}
+                  onClick={(e) => { e.stopPropagation(); const raw = displayImages[currentIndex] || ''; const src = raw.startsWith('http') || raw.startsWith('//') ? raw : `${window.location.origin}${raw.startsWith('/') ? '' : '/'}${raw}`; window.open(src, '_blank', 'noopener,noreferrer'); }}
                   className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-2xl bg-white/90 text-slate-800 backdrop-blur-md hover:bg-white shadow-xl transition-all active:scale-90 border border-slate-200/50"
                   title="Open image in new tab"
                 >
@@ -468,6 +469,14 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           </div>
         </div>
+        {/* In-modal toast confirmation */}
+        {added && (
+          <div className="absolute bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-full bg-emerald-600 px-4 py-2 text-white shadow-2xl">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+            <span className="font-black">Added to bag</span>
+            <Link to="/cart" onClick={() => setShowModal(false)} className="ml-2 underline font-semibold">View bag</Link>
+          </div>
+        )}
       )}
     </>
   );

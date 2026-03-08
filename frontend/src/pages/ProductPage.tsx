@@ -103,14 +103,22 @@ export function ProductPage() {
             >
               Add to bag
             </button>
-            <a
-              href={`https://wa.me/${CONTACT_RAW.replace(/^\+/, '')}?text=${encodeURIComponent(`I'm interested in this product:\n\nName: ${product.name}\nPrice: ${product.price}\nCategory: ${product.category || 'N/A'}\n\nProduct link: ${window.location.origin}/product/${product.id}\nImage: ${product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[currentIndex] : (product.imageUrl || '')}`)}`}
-              className="block text-center text-sm text-emerald-600"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Contact on WhatsApp
-            </a>
+            {(() => {
+              const raw = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[currentIndex] : (product.imageUrl || '');
+              const imgUrl = raw.startsWith('http') || raw.startsWith('//') ? raw : `${window.location.origin}${raw.startsWith('/') ? '' : '/'}${raw}`;
+              const waMessage = `I'm interested in this product:\n\nName: ${product.name}\nPrice: ${product.price}\nCategory: ${product.category || 'N/A'}\n\nProduct link: ${window.location.origin}/product/${product.id}\nImage: ${imgUrl}`;
+              return (
+                <a
+                  href={`https://wa.me/${CONTACT_RAW.replace(/^\+/, '')}?text=${encodeURIComponent(waMessage)}`}
+                  className="block text-center text-sm text-emerald-600"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Contact on WhatsApp
+                </a>
+              );
+            })()}
+          </div>
           </div>
         </div>
       </div>
