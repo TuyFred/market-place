@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Product, ProductCard } from '../components/products/ProductCard';
 import { useCart } from '../context/CartContext';
+import { useCheckout } from '../context/CheckoutContext';
 import { useAuth } from '../context/AuthContext';
 import { DEMO_PRODUCTS, SAMPLE_IMAGES, getDemoProducts } from '../config/brand';
 import { formatRwf } from '../utils/format';
@@ -46,6 +47,7 @@ function relatedFromDemo(product: Product): Product[] {
 export function ProductPage() {
   const { id } = useParams();
   const { addToCart } = useCart();
+  const { openCheckout } = useCheckout();
   const { isAuthenticated, openAuthModal } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
@@ -181,6 +183,7 @@ export function ProductPage() {
       return;
     }
     addToCart(product);
+    openCheckout([{ product, quantity: 1 }]);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -273,7 +276,7 @@ export function ProductPage() {
             {product.description || 'Premium AFROLUXO piece selected for quality and style.'}
           </p>
           <button type="button" onClick={handleAdd} className={`btn-buy py-3.5 text-sm ${added ? 'btn-buy-added' : ''}`}>
-            {added ? 'Added to cart' : 'Add to cart'}
+            {added ? 'Opening checkout…' : 'Buy now'}
           </button>
           <Link to="/products" className="text-center text-xs font-semibold text-forest sm:text-sm">
             Browse more clothes →

@@ -1,4 +1,5 @@
 import { useCart } from '../../context/CartContext';
+import { useCheckout } from '../../context/CheckoutContext';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { formatRwf } from '../../utils/format';
@@ -21,6 +22,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
+  const { openCheckout } = useCheckout();
   const { isAuthenticated, openAuthModal } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showModal, setShowModal] = useState(false);
@@ -103,6 +105,7 @@ export function ProductCard({ product }: ProductCardProps) {
       return;
     }
     addToCart(product);
+    openCheckout([{ product, quantity: 1 }]);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };

@@ -9,12 +9,14 @@ export async function createOrder(payload, user) {
 
   const { name, phone, address, productId, notes } = payload;
 
+  // Demo catalog IDs are not UUIDs — store details in notes instead of product_id
+  const isDemo = typeof productId === 'string' && productId.startsWith('demo-');
   const row = {
     customer_name: name,
     customer_phone: phone,
     customer_address: address,
-    product_id: productId,
-    notes
+    product_id: isDemo ? null : productId,
+    notes: isDemo ? `${notes || ''} [demo:${productId}]`.trim() : notes
   };
 
   if (user) {
