@@ -4,8 +4,8 @@
   "installCommand": "cd frontend && npm install",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://afroluxo-by-asi-api.onrender.com/api/$1"
+      "source": "/api/:path*",
+      "destination": "https://market-place-z0w0.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",

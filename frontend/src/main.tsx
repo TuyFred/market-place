@@ -7,6 +7,13 @@ import './styles/global.css';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
+// Local: Vite proxies /api -> localhost:4000
+// Production: call Render directly (also mirrored by vercel.json rewrites)
+const DEFAULT_PROD_API = 'https://market-place-z0w0.onrender.com';
+axios.defaults.baseURL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? DEFAULT_PROD_API : '/');
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter
@@ -23,8 +30,3 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     </BrowserRouter>
   </React.StrictMode>
 );
-
-// Set global axios base URL from Vite env var. In production set VITE_API_URL
-// (e.g. https://market-place-z0w0.onrender.com) in Vercel environment variables.
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || '/';
-
