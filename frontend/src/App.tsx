@@ -1,0 +1,31 @@
+import { Route, Routes } from 'react-router-dom';
+import { Layout } from './components/layout/Layout';
+import { HomePage } from './pages/HomePage';
+import { ProductsPage } from './pages/ProductsPage';
+import { ProductPage } from './pages/ProductPage';
+import { CartPage } from './pages/CartPage';
+import { CustomerDashboardPage } from './pages/CustomerDashboardPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AuthRedirect } from './pages/AuthRedirect';
+import { TrackOrderPage } from './pages/TrackOrderPage';
+
+export default function App() {
+  return (
+    <Routes>
+      {/* admin dashboard uses its own full-screen layout */}
+      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+
+      {/* public pages wrapped in Layout (Navbar + Footer) */}
+      <Route element={<Layout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<AuthRedirect mode="login" />} />
+        <Route path="/register" element={<AuthRedirect mode="register" />} />
+        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/product/:id" element={<ProductPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/track" element={<TrackOrderPage />} />
+        <Route path="/customer/dashboard" element={<CustomerDashboardPage />} />
+      </Route>
+    </Routes>
+  );
+}

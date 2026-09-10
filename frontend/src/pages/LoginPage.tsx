@@ -1,0 +1,71 @@
+import { useNavigate } from 'react-router-dom';
+import { LoginForm } from '../components/auth/LoginForm';
+import { useAuth } from '../context/AuthContext';
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { handleLoginSuccess } = useAuth();
+
+  return (
+    <div className="min-h-screen bg-[#0f2540] flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-[420px] mb-6">
+        <a href="/" className="inline-flex items-center gap-2 text-white/70 hover:text-amber-400 font-bold text-sm transition-colors group">
+          <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center group-hover:border-amber-400/50 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </div>
+          GO BACK HOME
+        </a>
+      </div>
+
+      <div className="relative w-full max-w-[420px]">
+        {/* animated tick ring (hidden on small screens) */}
+        <div className="absolute inset-0 hidden sm:flex items-center justify-center pointer-events-none">
+          <div className="relative w-[380px] h-[380px]">
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* center circle for subtle glow */}
+              <div className="w-[320px] h-[320px] rounded-full bg-transparent" />
+            </div>
+            <div className="absolute inset-0 transform-gpu animate-spin-slow">
+              {Array.from({ length: 36 }).map((_, i) => {
+                const angle = (360 / 36) * i;
+                const isHighlight = i >= 28 && i <= 33; // small amber segment
+                return (
+                  <div
+                    key={i}
+                    style={{ transform: `rotate(${angle}deg) translateY(-170px)` }}
+                    className="origin-center absolute left-1/2 top-1/2"
+                  >
+                    <div
+                      className={`w-1.5 h-6 rounded-md ${isHighlight ? 'bg-amber-400 shadow-[0_0_8px_rgba(249,115,22,0.7)]' : 'bg-slate-600/50'}`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="relative mx-auto bg-[#0b1726]/95 border border-slate-800 rounded-2xl shadow-2xl px-8 py-8 backdrop-blur-md w-full">
+          <h2 className="text-2xl text-amber-400 font-bold text-center mb-3">AFROLUXO</h2>
+          <p className="text-center text-sm text-slate-300 mb-4">Sign in to your account</p>
+
+          <LoginForm
+            variant="dark"
+            onSuccess={({ user, accessToken }) => {
+              handleLoginSuccess({ user, token: accessToken });
+              if (user.role === 'admin' || user.role === 'manager') {
+                navigate('/admin/dashboard');
+              } else {
+                navigate('/');
+              }
+            }}
+          />
+
+          <div className="mt-5 text-center text-sm">
+            <a href="/register" className="text-amber-400 font-semibold">Sign Up</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
