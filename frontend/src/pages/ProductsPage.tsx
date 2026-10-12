@@ -346,7 +346,14 @@ export function ProductsPage() {
         </div>
 
         {list.length === 0 && (
-          <p className="py-16 text-center text-sm text-neutral-500">No products match these filters.</p>
+          <div className="py-16 text-center">
+            <p className="text-base font-medium text-black">
+              {search ? 'Not found' : 'No products match these filters.'}
+            </p>
+            {search ? (
+              <p className="mt-1 text-sm text-neutral-500">No products match “{search}”</p>
+            ) : null}
+          </div>
         )}
       </div>
     </section>
