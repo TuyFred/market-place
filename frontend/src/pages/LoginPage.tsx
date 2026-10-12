@@ -51,6 +51,7 @@ export default function LoginPage() {
 
           <LoginForm
             variant="dark"
+            onNeedAccount={() => navigate('/register')}
             onSuccess={({ user, accessToken }) => {
               handleLoginSuccess({ user, token: accessToken });
               if (user.role === 'admin' || user.role === 'manager') {
@@ -60,10 +61,6 @@ export default function LoginPage() {
               }
             }}
           />
-
-          <div className="mt-5 text-center text-sm">
-            <a href="/register" className="text-amber-400 font-semibold">Sign Up</a>
-          </div>
         </div>
       </div>
     </div>

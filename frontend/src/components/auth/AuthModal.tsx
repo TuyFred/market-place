@@ -94,6 +94,7 @@ export function AuthModal() {
           {mode === 'login' ? (
             <LoginForm
               variant="light"
+              onNeedAccount={() => setMode('register')}
               onSuccess={({ user, accessToken }) => {
                 handleLoginSuccess({ user, token: accessToken });
                 if (user.role === 'admin' || user.role === 'manager') {

@@ -1,50 +1,41 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { DEMO_ADMIN, enterDemoAdminSession, tryDemoLogin } from '../../config/demoAuth';
 
 type Props = {
   onSuccess?: (payload: {
     user: { id: string; email: string; role: string; fullName?: string };
     accessToken: string;
   }) => void;
+  onNeedAccount?: () => void;
   variant?: 'dark' | 'light';
 };
 
-export function LoginForm({ onSuccess, variant = 'light' }: Props) {
+export function LoginForm({ onSuccess, onNeedAccount, variant = 'light' }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const finishDemo = () => {
-    enterDemoAdminSession();
-    onSuccess?.({
-      user: { ...DEMO_ADMIN.user },
-      accessToken: DEMO_ADMIN.token,
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    const demo = tryDemoLogin(email, password);
-    if (demo) {
-      enterDemoAdminSession();
-      onSuccess?.(demo);
-      setLoading(false);
-      return;
-    }
 
     try {
       const res = await axios.post('/api/auth/login', { email, password });
       const { user, accessToken } = res.data;
       localStorage.removeItem('demo_mode');
       onSuccess?.({ user, accessToken });
-    } catch {
-      setError('Invalid email or password.');
+    } catch (err: unknown) {
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      if (status === 401 || status === 403) {
+        setError('Invalid email or password. Create an account if you do not have one.');
+      } else if (!err || (axios.isAxiosError(err) && !err.response)) {
+        setError('Cannot reach the server. Check your connection and try again.');
+      } else {
+        setError('Invalid email or password. Create an account if you do not have one.');
+      }
     } finally {
       setLoading(false);
     }
@@ -68,6 +59,7 @@ export function LoginForm({ onSuccess, variant = 'light' }: Props) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
           />
         </div>
       </div>
@@ -84,6 +76,7 @@ export function LoginForm({ onSuccess, variant = 'light' }: Props) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
             aria-label="Password"
           />
           <button
@@ -115,17 +108,22 @@ export function LoginForm({ onSuccess, variant = 'light' }: Props) {
         {loading ? 'Signing in…' : 'Sign In'}
       </button>
 
-      <button
-        type="button"
-        onClick={finishDemo}
-        className={
-          variant === 'dark'
-            ? 'w-full py-3 rounded-xl text-sm font-semibold border border-amber-400/40 text-amber-300 hover:bg-amber-400/10'
-            : 'w-full py-3 rounded-xl text-sm font-semibold border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
-        }
-      >
-        Continue as admin
-      </button>
+      {onNeedAccount && (
+        <p className={`text-center text-[12px] ${variant === 'dark' ? 'text-slate-400' : 'text-neutral-500'}`}>
+          No account?{' '}
+          <button
+            type="button"
+            onClick={onNeedAccount}
+            className={
+              variant === 'dark'
+                ? 'font-semibold text-amber-300 hover:underline'
+                : 'font-semibold text-black hover:underline'
+            }
+          >
+            Create one
+          </button>
+        </p>
+      )}
     </form>
   );
 }

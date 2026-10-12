@@ -4,7 +4,6 @@ import axios from 'axios';
 import { formatRwf } from '../utils/format';
 import { BRAND, SAMPLE_IMAGES } from '../config/brand';
 import {
-  enterDemoAdminSession,
   isDemoAdminToken,
   loadDemoCategories,
   loadDemoOrders,
@@ -123,16 +122,11 @@ export function AdminDashboardPage() {
   useEffect(() => {
     const role = storedUser?.role;
     if (!storedUser || (role !== 'admin' && role !== 'manager')) {
-      // No DB required: enter offline demo admin automatically
-      enterDemoAdminSession();
-      const demoUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
-      setStoredUser(demoUser);
-      setProfileName(demoUser.fullName || 'Demo Admin');
-      setMsg('Demo mode — no database. Changes stay in this browser only.');
+      navigate('/login', { replace: true });
       return;
     }
     setProfileName(storedUser.fullName || '');
-  }, []);
+  }, [navigate, storedUser]);
 
   const loadDemoDashboard = () => {
     setProducts(loadDemoProducts() as Product[]);
@@ -165,9 +159,7 @@ export function AdminDashboardPage() {
       setUsers(u.data || []);
       setHeroVideoUrl(s.data?.hero_video_url || '');
     } catch {
-      loadDemoDashboard();
-      enterDemoAdminSession();
-      setMsg('API offline — using demo data (local only).');
+      setMsg('Could not load dashboard data. Check your connection and try again.');
     }
   };
 
