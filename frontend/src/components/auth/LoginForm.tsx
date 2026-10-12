@@ -11,8 +11,8 @@ type Props = {
 };
 
 export function LoginForm({ onSuccess, variant = 'light' }: Props) {
-  const [email, setEmail] = useState(DEMO_ADMIN.email);
-  const [password, setPassword] = useState(DEMO_ADMIN.password);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,7 +44,7 @@ export function LoginForm({ onSuccess, variant = 'light' }: Props) {
       localStorage.removeItem('demo_mode');
       onSuccess?.({ user, accessToken });
     } catch {
-      setError('Invalid credentials. For demo use admin@system.com / admin123@');
+      setError('Invalid email or password.');
     } finally {
       setLoading(false);
     }
@@ -124,14 +124,8 @@ export function LoginForm({ onSuccess, variant = 'light' }: Props) {
             : 'w-full py-3 rounded-xl text-sm font-semibold border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
         }
       >
-        Enter demo admin (no database)
+        Continue as admin
       </button>
-
-      <p
-        className={`text-center text-[11px] ${variant === 'dark' ? 'text-slate-500' : 'text-neutral-400'}`}
-      >
-        Demo: {DEMO_ADMIN.email} / {DEMO_ADMIN.password}
-      </p>
     </form>
   );
 }

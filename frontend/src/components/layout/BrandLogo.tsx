@@ -21,24 +21,12 @@ export function BrandLogo({ to = '/', className = '', size = 'nav' }: Props) {
       >
         {BRAND.initials}
       </span>
-      <span className="min-w-0 leading-none">
-        <span
-          className={`block truncate font-display font-bold uppercase tracking-[0.14em] text-black ${
-            isHero ? 'text-xl sm:text-2xl md:text-3xl' : 'text-[13px] sm:text-[15px]'
-          }`}
-        >
-          {BRAND.shortName}
-        </span>
-        {!isHero && (
-          <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.18em] text-neutral-400 sm:block">
-            {BRAND.byline}
-          </span>
-        )}
-        {isHero && (
-          <span className="mt-1 block text-[11px] font-medium tracking-[0.12em] text-neutral-500 sm:text-xs">
-            {BRAND.byline} · afroluxo.com
-          </span>
-        )}
+      <span
+        className={`block truncate font-display font-bold uppercase tracking-[0.14em] text-black leading-none ${
+          isHero ? 'text-xl sm:text-2xl md:text-3xl' : 'text-[13px] sm:text-[15px]'
+        }`}
+      >
+        {BRAND.shortName}
       </span>
     </span>
   );

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Product, ProductCard } from '../components/products/ProductCard';
 import { DEMO_PRODUCTS } from '../config/brand';
-import { BrandLogo } from '../components/layout/BrandLogo';
 
 type AvailabilityFilter = 'all' | 'in_stock' | 'sold_out';
 type SortOption = 'featured' | 'price_asc' | 'price_desc' | 'name_asc';
@@ -66,7 +65,7 @@ export function HomePage() {
     else if (sort === 'price_desc') next.sort((a, b) => b.price - a.price);
     else if (sort === 'name_asc') next.sort((a, b) => a.name.localeCompare(b.name));
 
-    return next;
+    return next.slice(0, 20);
   }, [products, availability, maxPrice, sort]);
 
   const closeMenus = () => {
@@ -82,23 +81,8 @@ export function HomePage() {
 
   return (
     <section className="bg-white text-black" onClick={closeMenus}>
-      <div className="border-b border-neutral-100 bg-gradient-to-b from-neutral-50 to-white">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-3 py-5 sm:px-6 sm:py-7 lg:px-10">
-          <BrandLogo size="hero" to="/" />
-          <div>
-            <h1 className="text-xl font-bold leading-tight tracking-tight text-black sm:text-2xl md:text-3xl">
-              Products
-            </h1>
-            <p className="mt-1 max-w-xl text-[13px] text-neutral-500 sm:text-sm">
-              African-inspired fashion & modern style — order now or via WhatsApp.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-7xl px-3 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:px-10">
-
-        <div className="flex flex-col gap-2 border-y border-neutral-200 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:py-3">
+      <div className="mx-auto w-full max-w-7xl px-3 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-5 sm:pb-8 lg:px-10">
+        <div className="flex flex-col gap-2 border-b border-neutral-200 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:py-3">
           <div
             className="flex items-center gap-4 overflow-x-auto scrollbar-hide"
             onClick={(e) => e.stopPropagation()}
