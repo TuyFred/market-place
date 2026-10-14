@@ -112,14 +112,17 @@ export function Footer() {
             © {new Date().getFullYear()} {BRAND.name}. All rights reserved.
           </p>
           <p className="text-xs text-neutral-500">
-            Developed by{' '}
             <a
-              href="https://github.com/TuyFred"
+              href="https://www.voltaleltd.com/"
               target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-black underline-offset-2 hover:underline"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 font-semibold tracking-wide text-black transition-opacity hover:opacity-70"
+              aria-label="Voltale — open website"
             >
-              Cyberfred
+              Voltale
+              <svg className="h-3 w-3 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
+              </svg>
             </a>
           </p>
         </div>
