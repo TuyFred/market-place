@@ -47,11 +47,14 @@ export async function ordersRoutes(fastify) {
         },
         body: {
           type: 'object',
-          required: ['status'],
           properties: {
             status: {
               type: 'string',
-              enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
+              enum: ['pending', 'payment_review', 'confirmed', 'shipped', 'delivered', 'cancelled']
+            },
+            paymentStatus: {
+              type: 'string',
+              enum: ['awaiting_payment', 'payment_review', 'paid', 'rejected']
             }
           }
         }

@@ -7,7 +7,14 @@ const IMAGE_MIMES = new Set([
   'image/jpg',
   'image/png',
   'image/webp',
-  'image/gif'
+  'image/gif',
+  'image/bmp',
+  'image/tiff',
+  'image/heic',
+  'image/heif',
+  'image/avif',
+  'image/svg+xml',
+  'application/octet-stream' // some mobile uploads
 ]);
 
 const VIDEO_MIMES = new Set(['video/mp4', 'video/webm', 'video/quicktime']);

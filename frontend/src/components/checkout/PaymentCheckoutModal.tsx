@@ -6,6 +6,7 @@ import { useCart } from '../../context/CartContext';
 import type { CheckoutLine } from './types';
 import { formatRwf } from '../../utils/format';
 import { SAMPLE_IMAGES } from '../../config/brand';
+import { CONTACT_DISPLAY, CONTACT_RAW, openWhatsApp, whatsappDigits } from '../../utils/whatsapp';
 
 type Props = {
   open: boolean;
@@ -13,138 +14,84 @@ type Props = {
   onClose: () => void;
 };
 
-type PayMethod = 'card' | 'bank';
+type PayMethod = 'bank' | 'mobile' | 'paypal';
 
-function onlyDigits(v: string) {
-  return v.replace(/\D/g, '');
-}
-
-function formatCardNumber(v: string) {
-  return onlyDigits(v).slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ').trim();
-}
-
-function detectBrand(num: string): 'visa' | 'mastercard' | 'amex' | 'other' {
-  const d = onlyDigits(num);
-  if (/^4/.test(d)) return 'visa';
-  if (/^(5[1-5]|2[2-7])/.test(d)) return 'mastercard';
-  if (/^3[47]/.test(d)) return 'amex';
-  return 'other';
-}
-
-/** Luhn check — format validation only; never store full PAN */
-function luhnOk(num: string) {
-  const d = onlyDigits(num);
-  if (d.length < 13 || d.length > 19) return false;
-  let sum = 0;
-  let alt = false;
-  for (let i = d.length - 1; i >= 0; i -= 1) {
-    let n = Number(d[i]);
-    if (alt) {
-      n *= 2;
-      if (n > 9) n -= 9;
-    }
-    sum += n;
-    alt = !alt;
-  }
-  return sum % 10 === 0;
-}
-
-function BrandBadges({ active }: { active: string }) {
-  const items = [
-    { id: 'visa', label: 'Visa' },
-    { id: 'mastercard', label: 'Mastercard' },
-    { id: 'bank', label: 'Bank' },
-  ];
-  return (
-    <div className="flex flex-wrap gap-2">
-      {items.map((b) => (
-        <span
-          key={b.id}
-          className={`rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
-            active === b.id
-              ? 'border-forest bg-forest/10 text-forest'
-              : 'border-ink/10 bg-white text-ink/45'
-          }`}
-        >
-          {b.label}
-        </span>
-      ))}
-    </div>
-  );
-}
+type PaymentInfo = {
+  bankName: string;
+  bankAccount: string;
+  bankAccountName: string;
+  mobileNumber: string;
+  mobileName: string;
+  paypalEmail: string;
+  supportPhone: string;
+  instructions: string;
+};
 
 export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
   const { isAuthenticated, token, openAuthModal, user } = useAuth();
   const { clearCart } = useCart();
-  const [method, setMethod] = useState<PayMethod>('card');
+  const [method, setMethod] = useState<PayMethod>('bank');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
-  const [bankName, setBankName] = useState('');
-  const [accountName, setAccountName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [pay, setPay] = useState<PaymentInfo | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successId, setSuccessId] = useState<string | null>(null);
 
-  const brand = detectBrand(cardNumber);
   const total = useMemo(
     () => lines.reduce((s, l) => s + l.product.price * l.quantity, 0),
-    [lines]
+    [lines],
   );
 
   useEffect(() => {
     if (!open) return;
-    setError('');
     setSuccessId(null);
-    setSubmitting(false);
-    if (user?.fullName) setName((n) => n || user.fullName || '');
-    if (user?.email) setEmail((e) => e || user.email);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open, user]);
+    setError('');
+    setPaymentReference('');
+    setProofFile(null);
+    if (user?.email) setEmail(user.email);
+    axios
+      .get<{ payment?: PaymentInfo }>('/api/settings')
+      .then((res) => {
+        const p = res.data?.payment;
+        if (p) {
+          setPay(p);
+          if (p.bankAccount) setMethod('bank');
+          else if (p.mobileNumber) setMethod('mobile');
+          else if (p.paypalEmail) setMethod('paypal');
+        }
+      })
+      .catch(() => setPay(null));
+  }, [open, user?.email]);
 
   if (!open) return null;
 
-  const payLabel =
-    method === 'card'
-      ? `Pay ${formatRwf(total)}`
-      : `Confirm ${formatRwf(total)}`;
+  const supportPhone = pay?.supportPhone || CONTACT_RAW;
+  const supportDigits = (supportPhone || '').replace(/\D/g, '') || whatsappDigits();
+
+  const askSupport = () => {
+    const msg = `Hello AFROLUXO support,\nI need help with checkout / payment.\nTotal: ${formatRwf(total)}\nItems: ${lines.map((l) => l.product.name).join(', ')}`;
+    openWhatsApp(msg);
+  };
+
+  const callSupport = () => {
+    if (!supportDigits) return;
+    window.location.href = `tel:+${supportDigits}`;
+  };
 
   const validate = () => {
-    if (!name.trim() || !phone.trim() || !address.trim()) {
-      return 'Please fill name, phone, and delivery address.';
-    }
-    if (method === 'card') {
-      if (!cardName.trim()) return 'Enter the name on the card.';
-      if (!luhnOk(cardNumber)) return 'Enter a valid Visa / Mastercard number.';
-      if (!/^\d{2}\/\d{2}$/.test(expiry)) return 'Expiry must be MM/YY.';
-      const [mm, yy] = expiry.split('/').map(Number);
-      if (mm < 1 || mm > 12) return 'Invalid expiry month.';
-      const now = new Date();
-      const exp = new Date(2000 + yy, mm);
-      if (exp <= now) return 'Card looks expired.';
-      if (cvc.length < 3 || cvc.length > 4) return 'Enter a valid CVC.';
-      if (brand === 'other') return 'Use Visa or Mastercard for card payments.';
-    } else {
-      if (!bankName.trim() || !accountName.trim() || onlyDigits(accountNumber).length < 6) {
-        return 'Enter bank name, account name, and account number.';
-      }
-    }
+    if (!name.trim() || !phone.trim() || !address.trim()) return 'Please fill delivery name, phone, and address.';
+    if (!paymentReference.trim()) return 'Enter your payment reference or transaction ID after you pay.';
     return '';
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !token) {
       openAuthModal('login');
       return;
     }
@@ -157,20 +104,14 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
     setSubmitting(true);
     setError('');
 
-    const digits = onlyDigits(cardNumber);
-    const last4 = digits.slice(-4);
-    const payNote =
-      method === 'card'
-        ? `CARD ${brand.toUpperCase()} •••• ${last4} | ${cardName}`
-        : `BANK ${bankName} | ${accountName} | ****${onlyDigits(accountNumber).slice(-4)}`;
-
     try {
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      const headers = { Authorization: `Bearer ${token}` };
       let lastOrderId: string | null = null;
 
       for (const line of lines) {
         const notes = [
-          `Checkout payment: ${payNote}`,
+          `Payment method: ${method}`,
+          `Reference: ${paymentReference.trim()}`,
           `Qty: ${line.quantity}`,
           `Amount: ${formatRwf(line.product.price * line.quantity)}`,
           email ? `Email: ${email}` : '',
@@ -179,36 +120,46 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
           .filter(Boolean)
           .join(' | ');
 
-        const body = {
-          name: name.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          productId: line.product.id,
-          notes,
-        };
-
-        const res = await axios.post('/api/orders', body, { headers });
+        const res = await axios.post(
+          '/api/orders',
+          {
+            name: name.trim(),
+            phone: phone.trim(),
+            address: address.trim(),
+            productId: line.product.id,
+            notes,
+            paymentMethod: method,
+            paymentReference: paymentReference.trim(),
+            paymentStatus: 'payment_review',
+          },
+          { headers },
+        );
         lastOrderId = res.data?.id || lastOrderId;
+
+        if (proofFile && lastOrderId) {
+          const fd = new FormData();
+          fd.append('file', proofFile);
+          await axios.post(`/api/orders/${lastOrderId}/proof`, fd, {
+            headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+          });
+        }
       }
 
       if (!lastOrderId) {
-        setError('Order was not saved. Check Supabase connection and try again.');
+        setError('Order was not saved. Please try again.');
         return;
       }
 
-      // Never persist full card data
-      setCardNumber('');
-      setCvc('');
       clearCart();
       setSuccessId(lastOrderId);
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err)
-        ? (err.response?.data?.message || err.response?.data?.error || err.message)
+        ? err.response?.data?.message || err.response?.data?.error || err.message
         : '';
       setError(
         typeof msg === 'string' && msg
           ? msg
-          : 'Order could not be saved. Connect Supabase and ensure the backend is running.',
+          : 'Could not place order. Sign in and check payment details.',
       );
     } finally {
       setSubmitting(false);
@@ -217,236 +168,214 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
-      <button type="button" className="absolute inset-0 bg-ink/80 backdrop-blur-sm" aria-label="Close" onClick={onClose} />
+      <button type="button" className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-label="Close" onClick={onClose} />
 
-      <div className="relative flex max-h-[96dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-stone shadow-2xl sm:max-h-[92dvh] sm:rounded-3xl">
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-ink/10 bg-white px-4 py-3.5 sm:px-5">
+      <div className="relative flex max-h-[96dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-h-[92dvh] sm:rounded-3xl">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-4 py-3.5 sm:px-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-forest">Secure checkout</p>
-            <h2 className="text-lg font-black text-ink">Pay with card or bank</h2>
-            <p className="mt-0.5 text-xs text-ink/50">Visa · Mastercard · Bank transfer</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Secure checkout</p>
+            <h2 className="mt-0.5 text-lg font-bold text-black">
+              {successId ? 'Order received' : 'Pay & confirm'}
+            </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-ink text-white"
-            aria-label="Close checkout"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <button type="button" onClick={onClose} className="text-sm text-neutral-500 hover:text-black">
+            Close
           </button>
         </div>
 
-        {successId ? (
-          <div className="space-y-4 overflow-y-auto px-4 py-8 text-center sm:px-6">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest text-white">
-              <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+          {successId ? (
+            <div className="space-y-4 py-4 text-center">
+              <p className="text-sm text-neutral-600">
+                Thank you. Your order is under <strong>payment review</strong>. We will confirm once payment is verified.
+              </p>
+              <p className="text-xs text-neutral-400">Order ID: {successId}</p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                <Link
+                  to="/customer/dashboard"
+                  className="inline-flex min-h-[44px] items-center justify-center bg-black px-5 text-sm font-semibold text-white"
+                  onClick={onClose}
+                >
+                  Track my order
+                </Link>
+                <button
+                  type="button"
+                  onClick={askSupport}
+                  className="inline-flex min-h-[44px] items-center justify-center border border-neutral-200 px-5 text-sm font-semibold"
+                >
+                  WhatsApp support
+                </button>
+              </div>
             </div>
-            <h3 className="text-xl font-black text-ink">Payment received</h3>
-            <p className="text-sm text-ink/60">
-              Your order is confirmed. Ref: <span className="font-mono font-bold text-ink">{successId}</span>
-            </p>
-            <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-center">
-              <Link to="/track" onClick={onClose} className="btn-buy py-3 text-xs">
-                Track order
-              </Link>
-              <button type="button" onClick={onClose} className="rounded-xl border border-ink/15 bg-white py-3 text-xs font-bold text-ink">
-                Continue shopping
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
-              {/* Order lines */}
-              <div className="space-y-2 rounded-2xl border border-ink/10 bg-white p-3">
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-3">
                 {lines.map((l) => (
-                  <div key={l.product.id} className="flex items-center gap-3">
-                    <img
-                      src={l.product.imageUrl || l.product.imageUrls?.[0] || SAMPLE_IMAGES.placeholder}
-                      alt=""
-                      className="h-12 w-12 rounded-lg object-cover bg-stone"
-                    />
+                  <div key={l.product.id} className="flex gap-3 py-2">
+                    <div className="h-14 w-14 shrink-0 overflow-hidden bg-neutral-200">
+                      <img
+                        src={l.product.imageUrl || l.product.imageUrls?.[0] || SAMPLE_IMAGES.placeholder}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-ink">{l.product.name}</p>
-                      <p className="text-[11px] text-ink/45">
-                        Qty {l.quantity} · {formatRwf(l.product.price)}
+                      <p className="truncate text-sm font-semibold">{l.product.name}</p>
+                      <p className="text-xs text-neutral-500">
+                        × {l.quantity} · {formatRwf(l.product.price * l.quantity)}
                       </p>
                     </div>
-                    <p className="shrink-0 text-sm font-black text-ink">
-                      {formatRwf(l.product.price * l.quantity)}
-                    </p>
                   </div>
                 ))}
-                <div className="flex items-center justify-between border-t border-ink/10 pt-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-ink/45">Total</span>
-                  <span className="text-lg font-black text-ink">{formatRwf(total)}</span>
+                <p className="mt-2 border-t border-neutral-200 pt-2 text-right text-sm font-bold">
+                  Total {formatRwf(total)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">How to pay</p>
+                <p className="mt-1 text-sm text-neutral-600">
+                  {pay?.instructions ||
+                    'Send the total using bank, mobile money, or PayPal, then submit your details below.'}
+                </p>
+
+                <div className="mt-3 grid gap-2">
+                  {(
+                    [
+                      ['bank', 'Bank transfer'],
+                      ['mobile', 'Mobile money'],
+                      ['paypal', 'PayPal'],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setMethod(id)}
+                      className={`rounded-xl border px-3 py-3 text-left text-sm ${
+                        method === id ? 'border-black bg-black text-white' : 'border-neutral-200'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-3 text-sm">
+                  {method === 'bank' && (
+                    <>
+                      <p className="font-semibold">Bank account</p>
+                      <p className="mt-1 text-neutral-600">{pay?.bankName || '— set by admin —'}</p>
+                      <p className="mt-1">
+                        Account name: <strong>{pay?.bankAccountName || '—'}</strong>
+                      </p>
+                      <p>
+                        Account number: <strong className="tracking-wide">{pay?.bankAccount || '—'}</strong>
+                      </p>
+                    </>
+                  )}
+                  {method === 'mobile' && (
+                    <>
+                      <p className="font-semibold">Mobile money</p>
+                      <p className="mt-1">
+                        Name: <strong>{pay?.mobileName || '—'}</strong>
+                      </p>
+                      <p>
+                        Number: <strong className="tracking-wide">{pay?.mobileNumber || '—'}</strong>
+                      </p>
+                    </>
+                  )}
+                  {method === 'paypal' && (
+                    <>
+                      <p className="font-semibold">PayPal</p>
+                      <p className="mt-1">
+                        Send to:{' '}
+                        <strong>{pay?.paypalEmail || '—'}</strong>
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-500">Use PayPal email to complete payment, then continue this form.</p>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Delivery */}
-              <div className="space-y-2">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-ink/45">Delivery</h3>
+              <div className="grid gap-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Delivery & payment proof</p>
                 <input
-                  className="w-full rounded-xl border border-ink/10 bg-white px-3.5 py-3 text-sm font-medium text-ink outline-none focus:border-forest"
+                  className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
                   placeholder="Full name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  autoComplete="name"
                 />
                 <input
-                  className="w-full rounded-xl border border-ink/10 bg-white px-3.5 py-3 text-sm font-medium text-ink outline-none focus:border-forest"
-                  placeholder="Phone (+250…)"
+                  className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
+                  placeholder="Phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
-                  autoComplete="tel"
                 />
                 <input
-                  className="w-full rounded-xl border border-ink/10 bg-white px-3.5 py-3 text-sm font-medium text-ink outline-none focus:border-forest"
-                  placeholder="Email (receipt)"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                />
-                <textarea
-                  className="min-h-[72px] w-full rounded-xl border border-ink/10 bg-white px-3.5 py-3 text-sm font-medium text-ink outline-none focus:border-forest"
+                  className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
                   placeholder="Delivery address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   required
                 />
+                <input
+                  type="email"
+                  className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
+                  placeholder="Email (optional)"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <input
+                  className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
+                  placeholder="Payment reference / transaction ID"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  required
+                />
+                <label className="block text-xs text-neutral-500">
+                  Upload payment screenshot (optional)
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="mt-1 block w-full text-sm"
+                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                  />
+                </label>
               </div>
-
-              {/* Method */}
-              <div className="space-y-2">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-ink/45">Payment method</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMethod('card')}
-                    className={`rounded-xl border px-3 py-3 text-left transition ${
-                      method === 'card' ? 'border-forest bg-forest/10' : 'border-ink/10 bg-white'
-                    }`}
-                  >
-                    <p className="text-sm font-black text-ink">Card</p>
-                    <p className="text-[10px] text-ink/45">Visa / Mastercard</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMethod('bank')}
-                    className={`rounded-xl border px-3 py-3 text-left transition ${
-                      method === 'bank' ? 'border-forest bg-forest/10' : 'border-ink/10 bg-white'
-                    }`}
-                  >
-                    <p className="text-sm font-black text-ink">Bank account</p>
-                    <p className="text-[10px] text-ink/45">Local transfer</p>
-                  </button>
-                </div>
-                <BrandBadges active={method === 'bank' ? 'bank' : brand} />
-              </div>
-
-              {method === 'card' ? (
-                <div className="space-y-2 rounded-2xl border border-ink/10 bg-gradient-to-br from-ink to-forest p-4 text-white shadow-lg">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">AFROLUXO Pay</span>
-                    <span className="rounded bg-white/15 px-2 py-0.5 text-[10px] font-black uppercase">
-                      {brand === 'other' ? 'Card' : brand}
-                    </span>
-                  </div>
-                  <input
-                    className="w-full rounded-xl border border-white/15 bg-white/10 px-3.5 py-3 text-sm font-semibold tracking-widest text-white placeholder:text-white/40 outline-none focus:border-white/40"
-                    placeholder="Card number"
-                    inputMode="numeric"
-                    autoComplete="cc-number"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                  />
-                  <input
-                    className="w-full rounded-xl border border-white/15 bg-white/10 px-3.5 py-3 text-sm font-medium text-white placeholder:text-white/40 outline-none focus:border-white/40"
-                    placeholder="Name on card"
-                    autoComplete="cc-name"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      className="w-full rounded-xl border border-white/15 bg-white/10 px-3.5 py-3 text-sm font-semibold text-white placeholder:text-white/40 outline-none focus:border-white/40"
-                      placeholder="MM/YY"
-                      inputMode="numeric"
-                      autoComplete="cc-exp"
-                      value={expiry}
-                      onChange={(e) => {
-                        let v = onlyDigits(e.target.value).slice(0, 4);
-                        if (v.length >= 3) v = `${v.slice(0, 2)}/${v.slice(2)}`;
-                        setExpiry(v);
-                      }}
-                    />
-                    <input
-                      className="w-full rounded-xl border border-white/15 bg-white/10 px-3.5 py-3 text-sm font-semibold text-white placeholder:text-white/40 outline-none focus:border-white/40"
-                      placeholder="CVC"
-                      inputMode="numeric"
-                      autoComplete="cc-csc"
-                      value={cvc}
-                      onChange={(e) => setCvc(onlyDigits(e.target.value).slice(0, 4))}
-                    />
-                  </div>
-                  <p className="pt-1 text-[10px] leading-relaxed text-white/55">
-                    Card details are checked in your browser. Only brand + last 4 digits are saved with the order — never the full card number.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2 rounded-2xl border border-ink/10 bg-white p-3">
-                  <input
-                    className="w-full rounded-xl border border-ink/10 bg-stone px-3.5 py-3 text-sm font-medium outline-none focus:border-forest"
-                    placeholder="Bank name (e.g. Bank of Kigali)"
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                  />
-                  <input
-                    className="w-full rounded-xl border border-ink/10 bg-stone px-3.5 py-3 text-sm font-medium outline-none focus:border-forest"
-                    placeholder="Account holder name"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                  />
-                  <input
-                    className="w-full rounded-xl border border-ink/10 bg-stone px-3.5 py-3 text-sm font-medium outline-none focus:border-forest"
-                    placeholder="Account number"
-                    inputMode="numeric"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(onlyDigits(e.target.value).slice(0, 20))}
-                  />
-                </div>
-              )}
 
               {error && (
-                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
-                  {error}
-                </p>
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-center text-xs font-medium text-red-600">{error}</p>
               )}
-            </div>
 
-            <div className="shrink-0 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
-              {!isAuthenticated && (
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full min-h-[48px] bg-black text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {submitting ? 'Submitting…' : 'I paid — submit order'}
+              </button>
+
+              <div className="flex flex-col gap-2 border-t border-neutral-100 pt-3 sm:flex-row">
                 <button
                   type="button"
-                  onClick={() => openAuthModal('login')}
-                  className="mb-2 w-full text-center text-xs font-semibold text-forest"
+                  onClick={askSupport}
+                  className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-semibold"
                 >
-                  Sign in to complete payment →
+                  WhatsApp help ({CONTACT_DISPLAY})
                 </button>
-              )}
-              <button type="submit" disabled={submitting} className="btn-buy py-3.5 text-sm disabled:opacity-60">
-                {submitting ? 'Processing payment…' : payLabel}
-              </button>
-            </div>
-          </form>
-        )}
+                <button
+                  type="button"
+                  onClick={callSupport}
+                  className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-semibold"
+                >
+                  Call support
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,23 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Product, ProductCard } from '../components/products/ProductCard';
-import { DEMO_PRODUCTS } from '../config/brand';
-
 type AvailabilityFilter = 'all' | 'in_stock' | 'sold_out';
 type SortOption = 'featured' | 'price_asc' | 'price_desc' | 'name_asc';
 type GridCols = 2 | 4;
-
-function withDemoStock(products: Product[]): Product[] {
-  return products.map((p, i) => {
-    const stock = p.stock ?? (i % 5 === 3 || i % 5 === 4 ? 0 : 12);
-    const onSale = i % 4 === 1 && stock > 0;
-    return {
-      ...p,
-      stock,
-      compareAtPrice: p.compareAtPrice ?? (onSale ? Math.round(p.price * 1.18) : undefined),
-    };
-  });
-}
 
 export function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -35,12 +21,10 @@ export function HomePage() {
     axios
       .get<Product[]>('/api/products')
       .then((res) => {
-        // Prefer real Supabase products; only use local samples if API is empty/offline
-        const mapped = (res.data || []).map((p) => ({ ...p }));
-        setProducts(mapped);
+        setProducts((res.data || []).map((p) => ({ ...p })));
       })
       .catch(() => {
-        setProducts(withDemoStock(DEMO_PRODUCTS as Product[]));
+        setProducts([]);
       });
   }, []);
 
@@ -283,7 +267,12 @@ export function HomePage() {
         </div>
 
         {list.length === 0 && (
-          <p className="py-16 text-center text-sm text-neutral-500">No products match these filters.</p>
+          <div className="py-20 text-center">
+            <p className="text-base font-semibold text-black">No products yet</p>
+            <p className="mt-1 text-sm text-neutral-500">
+              New items appear here when the store adds them.
+            </p>
+          </div>
         )}
       </div>
     </section>

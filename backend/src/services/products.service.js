@@ -2,7 +2,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 
 const notConfiguredError = new Error('Supabase is not configured');
 
-export async function listProducts({ category, search }) {
+export async function listProducts({ category, subcategory, search }) {
   if (!supabaseAdmin) {
     return [];
   }
@@ -12,6 +12,10 @@ export async function listProducts({ category, search }) {
 
     if (category) {
       query = query.eq('category', category);
+    }
+
+    if (subcategory) {
+      query = query.eq('subcategory', subcategory);
     }
 
     if (search) {

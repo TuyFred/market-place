@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Product, ProductCard } from '../components/products/ProductCard';
-import { DEMO_PRODUCTS, getDemoProducts } from '../config/brand';
-
 const CATEGORY_LABELS: Record<string, string> = {
   'african-traditional': 'African Traditional',
   'ankara-prints': 'Ankara & Prints',
@@ -18,18 +16,6 @@ const CATEGORY_LABELS: Record<string, string> = {
 type AvailabilityFilter = 'all' | 'in_stock' | 'sold_out';
 type SortOption = 'featured' | 'price_asc' | 'price_desc' | 'name_asc';
 type GridCols = 2 | 4;
-
-function withDemoStock(products: Product[]): Product[] {
-  return products.map((p, i) => {
-    const stock = p.stock ?? (i % 5 === 3 || i % 5 === 4 ? 0 : 12);
-    const onSale = i % 4 === 1 && stock > 0;
-    return {
-      ...p,
-      stock,
-      compareAtPrice: p.compareAtPrice ?? (onSale ? Math.round(p.price * 1.18) : undefined),
-    };
-  });
-}
 
 export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -71,11 +57,7 @@ export function ProductsPage() {
         setProducts(mapped);
       })
       .catch(() => {
-        const demoFallback = (category ? getDemoProducts(category) : DEMO_PRODUCTS) as Product[];
-        const filteredDemo = search
-          ? demoFallback.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-          : demoFallback;
-        setProducts(withDemoStock(filteredDemo));
+        setProducts([]);
       });
   }, [category, search]);
 

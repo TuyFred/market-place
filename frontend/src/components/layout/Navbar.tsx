@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import axios from 'axios';
 import { formatRwf } from '../../utils/format';
-import { DEMO_PRODUCTS } from '../../config/brand';
 import { BrandLogo } from './BrandLogo';
 
 type SearchResult = {
@@ -178,7 +177,7 @@ export function Navbar() {
         setCatalog(list);
       })
       .catch(() => {
-        if (!cancelled) setCatalog(DEMO_PRODUCTS as SearchResult[]);
+        if (!cancelled) setCatalog([]);
       });
     return () => {
       cancelled = true;

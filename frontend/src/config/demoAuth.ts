@@ -109,11 +109,8 @@ export function saveDemoCategories(categories: DemoCategory[]) {
 }
 
 export function loadDemoProducts(): DemoProduct[] {
-  const list = readJson<DemoProduct[]>(PROD_KEY, []);
-  if (list.length) return list;
-  const seeded = defaultProducts();
-  writeJson(PROD_KEY, seeded);
-  return seeded;
+  // Never auto-seed fake catalog images — only what admin adds
+  return readJson<DemoProduct[]>(PROD_KEY, []);
 }
 
 export function saveDemoProducts(products: DemoProduct[]) {

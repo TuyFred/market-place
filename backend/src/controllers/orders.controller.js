@@ -34,7 +34,11 @@ export async function getMyOrdersHandler(request, reply) {
 
 export async function updateOrderStatusHandler(request, reply) {
   try {
-    const order = await updateOrderStatus(request.params.id, request.body.status);
+    const order = await updateOrderStatus(
+      request.params.id,
+      request.body.status,
+      request.body.paymentStatus
+    );
     return sendSuccess(reply, 200, order);
   } catch (err) {
     const statusCode = err.statusCode || 400;

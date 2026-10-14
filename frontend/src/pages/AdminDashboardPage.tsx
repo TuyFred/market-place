@@ -23,13 +23,14 @@ type Product = {
   description?: string;
   price: number;
   category: string;
+  subcategory?: string;
   size?: string;
   imageUrl?: string;
   imageUrls?: string[];
   stock?: number;
   is_active?: boolean;
 };
-type Category = { id: string; name: string; slug: string };
+type Category = { id: string; name: string; slug: string; parent_id?: string | null };
 type Order = {
   id: string;
   customer_name: string;
@@ -38,8 +39,21 @@ type Order = {
   status?: string;
   created_at: string;
   notes?: string;
-  products?: { name: string; price: number; category: string } | null;
+  products?: { name: string; price: number; category: string; imageUrl?: string } | null;
   proof_url?: string;
+  payment_method?: string;
+  payment_status?: string;
+  payment_reference?: string;
+};
+type PaymentSettings = {
+  bankName: string;
+  bankAccount: string;
+  bankAccountName: string;
+  mobileNumber: string;
+  mobileName: string;
+  paypalEmail: string;
+  supportPhone: string;
+  instructions: string;
 };
 type UserRow = { id: string; email: string; role: string; fullName: string; createdAt: string };
 type Tab = 'overview' | 'products' | 'categories' | 'orders' | 'users' | 'settings' | 'profile';
@@ -70,6 +84,7 @@ const btnGhost =
 
 const statusColors: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
+  payment_review: 'bg-orange-100 text-orange-800',
   confirmed: 'bg-sky-100 text-sky-800',
   shipped: 'bg-violet-100 text-violet-800',
   delivered: 'bg-emerald-100 text-emerald-800',
@@ -89,7 +104,11 @@ export function AdminDashboardPage() {
   const [prodForm, setProdForm] = useState<Partial<Product>>({});
   const [editingProd, setEditingProd] = useState<string | null>(null);
   const [showProdModal, setShowProdModal] = useState(false);
-  const [catForm, setCatForm] = useState<{ name: string; slug: string }>({ name: '', slug: '' });
+  const [catForm, setCatForm] = useState<{ name: string; slug: string; parent_id: string }>({
+    name: '',
+    slug: '',
+    parent_id: '',
+  });
   const [editingCat, setEditingCat] = useState<string | null>(null);
   const [slugManual, setSlugManual] = useState(false);
 
@@ -97,6 +116,16 @@ export function AdminDashboardPage() {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState('');
   const [heroVideoUrl, setHeroVideoUrl] = useState('');
+  const [paySettings, setPaySettings] = useState<PaymentSettings>({
+    bankName: '',
+    bankAccount: '',
+    bankAccountName: '',
+    mobileNumber: '',
+    mobileName: '',
+    paypalEmail: '',
+    supportPhone: '',
+    instructions: '',
+  });
   const [viewingProd, setViewingProd] = useState<Product | null>(null);
   const [viewingImageIdx, setViewingImageIdx] = useState(0);
   const [productSearch, setProductSearch] = useState('');
@@ -151,13 +180,16 @@ export function AdminDashboardPage() {
         axios.get<Category[]>('/api/categories', h),
         axios.get<Order[]>('/api/orders', h).catch(() => ({ data: [] as Order[] })),
         axios.get<UserRow[]>('/api/auth/users', h).catch(() => ({ data: [] as UserRow[] })),
-        axios.get<{ hero_video_url: string }>('/api/settings', h).catch(() => ({ data: { hero_video_url: '' } })),
+        axios
+          .get<{ hero_video_url: string; payment?: PaymentSettings }>('/api/settings', h)
+          .catch(() => ({ data: { hero_video_url: '', payment: undefined } })),
       ]);
       setProducts(p.data || []);
       setCategories(c.data || []);
       setOrders(o.data || []);
       setUsers(u.data || []);
       setHeroVideoUrl(s.data?.hero_video_url || '');
+      if (s.data?.payment) setPaySettings((prev) => ({ ...prev, ...s.data.payment }));
     } catch {
       setMsg('Could not load dashboard data. Check your connection and try again.');
     }
@@ -234,12 +266,13 @@ export function AdminDashboardPage() {
         return;
       }
 
-      const payload: DemoProduct = {
+      const payload: DemoProduct & { subcategory?: string } = {
         id: editingProd || `demo-prod-${Date.now()}`,
         name: prodForm.name.trim(),
         description: prodForm.description || '',
         price: Number(prodForm.price) || 0,
         category: prodForm.category as string,
+        subcategory: prodForm.subcategory || undefined,
         stock: Number(prodForm.stock) || 0,
         size: prodForm.size || undefined,
         is_active: prodForm.is_active ?? true,
@@ -305,14 +338,14 @@ export function AdminDashboardPage() {
         setLoading(false);
         return;
       }
-      const body = { name, slug };
+      const body = { name, slug, parent_id: catForm.parent_id || null };
       if (inDemo()) {
         const list = loadDemoCategories();
         const next: DemoCategory[] = editingCat
           ? list.map((c) => (c.id === editingCat ? { ...c, ...body } : c))
           : [{ id: `demo-cat-${Date.now()}`, ...body }, ...list];
         saveDemoCategories(next);
-        setCategories(next);
+        setCategories(next as Category[]);
       } else if (editingCat) {
         await axios.put(`/api/categories/${editingCat}`, body, { headers: authHeaders() });
         await fetchAll();
@@ -320,7 +353,7 @@ export function AdminDashboardPage() {
         await axios.post('/api/categories', body, { headers: authHeaders() });
         await fetchAll();
       }
-      setCatForm({ name: '', slug: '' });
+      setCatForm({ name: '', slug: '', parent_id: '' });
       setEditingCat(null);
       setSlugManual(false);
       setMsg(inDemo() ? 'Category saved (demo / local)' : 'Category saved');
@@ -807,7 +840,7 @@ export function AdminDashboardPage() {
           {tab === 'categories' && (
             <div className="space-y-4">
               <div className={`${cardClass} p-4 sm:p-5`}>
-                <h3 className="mb-4 text-sm font-bold">{editingCat ? 'Edit category' : 'Add category'}</h3>
+                <h3 className="mb-4 text-sm font-bold">{editingCat ? 'Edit category' : 'Add category / subcategory'}</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className={labelClass}>Name</label>
@@ -818,6 +851,7 @@ export function AdminDashboardPage() {
                       onChange={(e) => {
                         const name = e.target.value;
                         setCatForm((f) => ({
+                          ...f,
                           name,
                           slug: slugManual ? f.slug : slugify(name),
                         }));
@@ -837,6 +871,23 @@ export function AdminDashboardPage() {
                     />
                     <p className="mt-1 text-[11px] text-neutral-400">Auto-fills from name. Used in product filters.</p>
                   </div>
+                  <div className="sm:col-span-2">
+                    <label className={labelClass}>Parent category (optional subcategory)</label>
+                    <select
+                      className={inputClass}
+                      value={catForm.parent_id}
+                      onChange={(e) => setCatForm({ ...catForm, parent_id: e.target.value })}
+                    >
+                      <option value="">None — top-level category</option>
+                      {categories
+                        .filter((c) => !c.parent_id && c.id !== editingCat)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button type="button" onClick={saveCat} disabled={loading} className={btnPrimary}>
@@ -847,7 +898,7 @@ export function AdminDashboardPage() {
                       type="button"
                       onClick={() => {
                         setEditingCat(null);
-                        setCatForm({ name: '', slug: '' });
+                        setCatForm({ name: '', slug: '', parent_id: '' });
                         setSlugManual(false);
                       }}
                       className={btnGhost}
@@ -869,6 +920,7 @@ export function AdminDashboardPage() {
                     <thead>
                       <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
                         <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Type</th>
                         <th className="px-4 py-3">Slug</th>
                         <th className="px-4 py-3">Products</th>
                         <th className="px-4 py-3 text-right">Actions</th>
@@ -876,10 +928,17 @@ export function AdminDashboardPage() {
                     </thead>
                     <tbody>
                       {categories.map((c) => {
-                        const count = products.filter((p) => p.category === c.slug).length;
+                        const count = products.filter((p) => p.category === c.slug || (p as any).subcategory === c.slug).length;
+                        const parent = categories.find((p) => p.id === c.parent_id);
                         return (
                           <tr key={c.id} className="border-b border-neutral-100 hover:bg-neutral-50/80">
-                            <td className="px-4 py-3 font-semibold">{c.name}</td>
+                            <td className="px-4 py-3 font-semibold">
+                              {c.parent_id ? <span className="text-neutral-400">↳ </span> : null}
+                              {c.name}
+                            </td>
+                            <td className="px-4 py-3 text-neutral-500">
+                              {parent ? `Sub of ${parent.name}` : 'Category'}
+                            </td>
                             <td className="px-4 py-3 text-neutral-500">{c.slug}</td>
                             <td className="px-4 py-3 text-neutral-600">{count}</td>
                             <td className="px-4 py-3 text-right">
@@ -888,7 +947,11 @@ export function AdminDashboardPage() {
                                   type="button"
                                   onClick={() => {
                                     setEditingCat(c.id);
-                                    setCatForm({ name: c.name, slug: c.slug });
+                                    setCatForm({
+                                      name: c.name,
+                                      slug: c.slug,
+                                      parent_id: c.parent_id || '',
+                                    });
                                     setSlugManual(true);
                                   }}
                                   className={btnGhost}
@@ -909,7 +972,7 @@ export function AdminDashboardPage() {
                       })}
                       {categories.length === 0 && (
                         <tr>
-                          <td colSpan={4} className="px-4 py-12 text-center text-neutral-400">
+                          <td colSpan={5} className="px-4 py-12 text-center text-neutral-400">
                             No categories yet. Add one above to start selling.
                           </td>
                         </tr>
@@ -930,10 +993,10 @@ export function AdminDashboardPage() {
                     <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
                       <th className="px-4 py-3">Customer</th>
                       <th className="px-4 py-3">Product</th>
-                      <th className="px-4 py-3">Phone</th>
+                      <th className="px-4 py-3">Payment</th>
                       <th className="px-4 py-3">Proof</th>
                       <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Update</th>
+                      <th className="px-4 py-3 text-right">Process</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -941,10 +1004,14 @@ export function AdminDashboardPage() {
                       <tr key={o.id} className="border-b border-neutral-100">
                         <td className="px-4 py-3">
                           <p className="font-semibold">{o.customer_name}</p>
-                          <p className="max-w-[140px] truncate text-xs text-neutral-500">{o.customer_address}</p>
+                          <p className="text-xs text-neutral-600">{o.customer_phone}</p>
+                          <p className="max-w-[160px] truncate text-xs text-neutral-500">{o.customer_address}</p>
                         </td>
                         <td className="px-4 py-3 text-neutral-700">{o.products?.name || '—'}</td>
-                        <td className="px-4 py-3 text-neutral-600">{o.customer_phone}</td>
+                        <td className="px-4 py-3 text-xs text-neutral-600">
+                          <p className="capitalize">{o.payment_method || '—'}</p>
+                          <p className="text-neutral-400">{o.payment_reference || o.payment_status || ''}</p>
+                        </td>
                         <td className="px-4 py-3">
                           {o.proof_url ? (
                             <a href={o.proof_url} target="_blank" rel="noreferrer" className="inline-block overflow-hidden rounded-lg border border-neutral-200">
@@ -955,7 +1022,7 @@ export function AdminDashboardPage() {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusColors[o.status || 'pending']}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusColors[o.status || 'pending'] || statusColors.pending}`}>
                             {o.status || 'pending'}
                           </span>
                         </td>
@@ -965,11 +1032,12 @@ export function AdminDashboardPage() {
                             value={o.status || 'pending'}
                             onChange={(e) => updateStatus(o.id, e.target.value)}
                           >
-                            <option value="pending">Pending</option>
-                            <option value="confirmed">Confirmed</option>
+                            <option value="pending">Awaiting payment</option>
+                            <option value="payment_review">Review payment</option>
+                            <option value="confirmed">Approve / confirmed</option>
                             <option value="shipped">Shipped</option>
                             <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
+                            <option value="cancelled">Cancel / reject</option>
                           </select>
                         </td>
                       </tr>
@@ -1065,6 +1133,69 @@ export function AdminDashboardPage() {
           {/* Settings */}
           {tab === 'settings' && (
             <div className="mx-auto max-w-3xl space-y-4">
+              <div className={`${cardClass} p-5 sm:p-6`}>
+                <h3 className="text-base font-bold">Payment details for customers</h3>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Shown at checkout: bank transfer, mobile money, and PayPal. Customers pay, then submit proof for your approval.
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className={labelClass}>Bank name</label>
+                    <input className={inputClass} value={paySettings.bankName} onChange={(e) => setPaySettings({ ...paySettings, bankName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Account name</label>
+                    <input className={inputClass} value={paySettings.bankAccountName} onChange={(e) => setPaySettings({ ...paySettings, bankAccountName: e.target.value })} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className={labelClass}>Bank account number</label>
+                    <input className={inputClass} value={paySettings.bankAccount} onChange={(e) => setPaySettings({ ...paySettings, bankAccount: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Mobile money name</label>
+                    <input className={inputClass} value={paySettings.mobileName} onChange={(e) => setPaySettings({ ...paySettings, mobileName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Mobile money number</label>
+                    <input className={inputClass} value={paySettings.mobileNumber} onChange={(e) => setPaySettings({ ...paySettings, mobileNumber: e.target.value })} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className={labelClass}>PayPal email</label>
+                    <input type="email" className={inputClass} value={paySettings.paypalEmail} onChange={(e) => setPaySettings({ ...paySettings, paypalEmail: e.target.value })} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className={labelClass}>Support phone / WhatsApp</label>
+                    <input className={inputClass} value={paySettings.supportPhone} onChange={(e) => setPaySettings({ ...paySettings, supportPhone: e.target.value })} placeholder="+1..." />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className={labelClass}>Checkout instructions</label>
+                    <textarea
+                      className={`${inputClass} min-h-[80px]`}
+                      value={paySettings.instructions}
+                      onChange={(e) => setPaySettings({ ...paySettings, instructions: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={`${btnPrimary} mt-4`}
+                  disabled={loading}
+                  onClick={async () => {
+                    setLoading(true);
+                    setMsg('');
+                    try {
+                      await axios.put('/api/settings/payment', paySettings, { headers: authHeaders() });
+                      setMsg('Payment settings saved');
+                    } catch (e: any) {
+                      setMsg(e?.response?.data?.message || 'Could not save payment settings');
+                    }
+                    setLoading(false);
+                  }}
+                >
+                  Save payment details
+                </button>
+              </div>
+
               <div className={`${cardClass} p-5 sm:p-6`}>
                 <h3 className="text-base font-bold">Hero video</h3>
                 <p className="mt-1 text-sm text-neutral-500">Optional home-page video (max 45 MB, MP4 recommended).</p>
@@ -1203,14 +1334,39 @@ export function AdminDashboardPage() {
                       <select
                         className={inputClass}
                         value={prodForm.category || ''}
-                        onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })}
+                        onChange={(e) =>
+                          setProdForm({ ...prodForm, category: e.target.value, subcategory: '' })
+                        }
                       >
                         <option value="">Select category</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.slug}>
-                            {c.name}
-                          </option>
-                        ))}
+                        {categories
+                          .filter((c) => !c.parent_id)
+                          .map((c) => (
+                            <option key={c.id} value={c.slug}>
+                              {c.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Subcategory (optional)</label>
+                      <select
+                        className={inputClass}
+                        value={prodForm.subcategory || ''}
+                        onChange={(e) => setProdForm({ ...prodForm, subcategory: e.target.value })}
+                        disabled={!prodForm.category}
+                      >
+                        <option value="">None</option>
+                        {categories
+                          .filter((c) => {
+                            const parent = categories.find((p) => p.id === c.parent_id);
+                            return parent && parent.slug === prodForm.category;
+                          })
+                          .map((c) => (
+                            <option key={c.id} value={c.slug}>
+                              {c.name}
+                            </option>
+                          ))}
                       </select>
                     </div>
                     <div>

@@ -38,7 +38,8 @@ Replace `xxxxx` and the keys with yours. WhatsApp number = the shop number that 
 ## 3. Create tables
 
 1. Supabase → **SQL Editor** → New query  
-2. Paste the full file **`supabase-schema.sql`** → **Run**
+2. Paste the full file **`supabase-schema.sql`** → **Run**  
+3. Also run **`supabase-migrate-payment-subcats.sql`** (payment fields + subcategories + order payment review)
 
 ## 4. Seed admin + products
 

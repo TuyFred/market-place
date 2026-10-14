@@ -2,21 +2,44 @@ import { supabaseAdmin } from '../config/supabase.js';
 
 const notConfiguredError = new Error('Supabase is not configured');
 
+const VALID_STATUSES = [
+  'pending',
+  'payment_review',
+  'confirmed',
+  'shipped',
+  'delivered',
+  'cancelled'
+];
+
+const VALID_PAYMENT_STATUSES = ['awaiting_payment', 'payment_review', 'paid', 'rejected'];
+
 export async function createOrder(payload, user) {
   if (!supabaseAdmin) {
     throw notConfiguredError;
   }
 
-  const { name, phone, address, productId, notes } = payload;
+  const {
+    name,
+    phone,
+    address,
+    productId,
+    notes,
+    paymentMethod,
+    paymentReference,
+    paymentStatus
+  } = payload;
 
-  // Demo catalog IDs are not UUIDs — store details in notes instead of product_id
   const isDemo = typeof productId === 'string' && productId.startsWith('demo-');
   const row = {
     customer_name: name,
     customer_phone: phone,
     customer_address: address,
     product_id: isDemo ? null : productId,
-    notes: isDemo ? `${notes || ''} [demo:${productId}]`.trim() : notes
+    notes: isDemo ? `${notes || ''} [demo:${productId}]`.trim() : notes || null,
+    payment_method: paymentMethod || null,
+    payment_reference: paymentReference || null,
+    payment_status: paymentStatus || 'awaiting_payment',
+    status: paymentStatus === 'payment_review' ? 'payment_review' : 'pending'
   };
 
   if (user) {
@@ -24,11 +47,7 @@ export async function createOrder(payload, user) {
     row.user_email = user.email;
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('orders')
-    .insert(row)
-    .select()
-    .single();
+  const { data, error } = await supabaseAdmin.from('orders').insert(row).select().single();
 
   if (error) {
     const err = new Error(error.message);
@@ -46,7 +65,7 @@ export async function listOrders() {
 
   const { data, error } = await supabaseAdmin
     .from('orders')
-    .select('*, products(name, price, category)')
+    .select('*, products(name, price, category, imageUrl)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -63,10 +82,9 @@ export async function listOrdersForUser(user) {
     throw notConfiguredError;
   }
 
-  // Return orders for the user by user_id OR by matching user_email (covers orders created before login)
   const { data, error } = await supabaseAdmin
     .from('orders')
-    .select('*, products(name, price, category)')
+    .select('*, products(name, price, category, imageUrl)')
     .or(`user_id.eq.${user.id},user_email.eq.${user.email}`)
     .order('created_at', { ascending: false });
 
@@ -79,23 +97,50 @@ export async function listOrdersForUser(user) {
   return data;
 }
 
-export async function updateOrderStatus(id, status) {
+export async function updateOrderStatus(id, status, paymentStatus) {
   if (!supabaseAdmin) {
     throw notConfiguredError;
   }
 
-  const validStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
-  if (!validStatuses.includes(status)) {
-    const err = new Error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+  const updates = {};
+  if (status) {
+    if (!VALID_STATUSES.includes(status)) {
+      const err = new Error(`Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`);
+      err.statusCode = 400;
+      throw err;
+    }
+    updates.status = status;
+    // Sync payment when admin confirms
+    if (status === 'confirmed') updates.payment_status = 'paid';
+    if (status === 'payment_review') updates.payment_status = 'payment_review';
+    if (status === 'cancelled') updates.payment_status = 'rejected';
+  }
+
+  if (paymentStatus) {
+    if (!VALID_PAYMENT_STATUSES.includes(paymentStatus)) {
+      const err = new Error(
+        `Invalid payment status. Must be one of: ${VALID_PAYMENT_STATUSES.join(', ')}`
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+    updates.payment_status = paymentStatus;
+    if (paymentStatus === 'paid' && !updates.status) updates.status = 'confirmed';
+    if (paymentStatus === 'payment_review' && !updates.status) updates.status = 'payment_review';
+    if (paymentStatus === 'rejected' && !updates.status) updates.status = 'cancelled';
+  }
+
+  if (!Object.keys(updates).length) {
+    const err = new Error('Nothing to update');
     err.statusCode = 400;
     throw err;
   }
 
   const { data, error } = await supabaseAdmin
     .from('orders')
-    .update({ status })
+    .update(updates)
     .eq('id', id)
-    .select()
+    .select('*, products(name, price, category, imageUrl)')
     .single();
 
   if (error) {
@@ -114,9 +159,13 @@ export async function uploadOrderProof(orderId, proofUrl) {
 
   const { data, error } = await supabaseAdmin
     .from('orders')
-    .update({ proof_url: proofUrl })
+    .update({
+      proof_url: proofUrl,
+      payment_status: 'payment_review',
+      status: 'payment_review'
+    })
     .eq('id', orderId)
-    .select()
+    .select('*, products(name, price, category, imageUrl)')
     .single();
 
   if (error) {

@@ -20,11 +20,14 @@ export const listProductsSchema = {
           description: { type: 'string' },
           price: { type: 'number' },
           category: { type: 'string' },
+          subcategory: { type: 'string' },
           size: { type: 'string' },
           imageUrl: { type: 'string' },
           imageUrls: { type: 'array', items: { type: 'string' } },
-          stock: { type: 'integer' }
-        }
+          stock: { type: 'integer' },
+          is_active: { type: 'boolean' }
+        },
+        additionalProperties: true
       }
     },
     500: errorResponseSchema
@@ -41,21 +44,25 @@ export const createProductSchema = {
       description: { type: 'string' },
       price: { type: 'number' },
       category: { type: 'string' },
+      subcategory: { type: 'string' },
       size: { type: 'string' },
       imageUrl: { type: 'string' },
       imageUrls: { type: 'array', items: { type: 'string' } },
-      stock: { type: 'integer' }
+      stock: { type: 'integer' },
+      is_active: { type: 'boolean' }
     }
   },
   response: {
     201: {
       type: 'object',
+      additionalProperties: true,
       properties: {
         id: { type: 'string' },
         name: { type: 'string' },
         description: { type: 'string' },
         price: { type: 'number' },
         category: { type: 'string' },
+        subcategory: { type: 'string' },
         size: { type: 'string' },
         imageUrl: { type: 'string' },
         imageUrls: { type: 'array', items: { type: 'string' } },
@@ -74,15 +81,32 @@ export const updateProductSchema = {
       id: { type: 'string' }
     }
   },
+  body: {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      description: { type: 'string' },
+      price: { type: 'number' },
+      category: { type: 'string' },
+      subcategory: { type: 'string' },
+      size: { type: 'string' },
+      imageUrl: { type: 'string' },
+      imageUrls: { type: 'array', items: { type: 'string' } },
+      stock: { type: 'integer' },
+      is_active: { type: 'boolean' }
+    }
+  },
   response: {
     200: {
       type: 'object',
+      additionalProperties: true,
       properties: {
         id: { type: 'string' },
         name: { type: 'string' },
         description: { type: 'string' },
         price: { type: 'number' },
         category: { type: 'string' },
+        subcategory: { type: 'string' },
         size: { type: 'string' },
         imageUrl: { type: 'string' },
         imageUrls: { type: 'array', items: { type: 'string' } },
