@@ -175,7 +175,7 @@ export function Navbar() {
           category: p.category,
           imageUrl: p.imageUrl,
         }));
-        setCatalog(list.length ? list : (DEMO_PRODUCTS as SearchResult[]));
+        setCatalog(list);
       })
       .catch(() => {
         if (!cancelled) setCatalog(DEMO_PRODUCTS as SearchResult[]);

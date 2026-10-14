@@ -4,7 +4,7 @@ import { useCheckout } from '../context/CheckoutContext';
 import { SAMPLE_IMAGES } from '../config/brand';
 import { formatRwf } from '../utils/format';
 import { Link } from 'react-router-dom';
-import { CONTACT_RAW } from '../utils/whatsapp';
+import { buildCartWhatsAppMessage, openWhatsApp } from '../utils/whatsapp';
 
 export function CartPage() {
   const { items, totalItems, removeFromCart, updateQuantity } = useCart();
@@ -22,13 +22,17 @@ export function CartPage() {
   };
 
   const orderCartWhatsApp = () => {
-    const digits = CONTACT_RAW.replace(/^\+/, '');
-    if (!digits || !items.length) return;
-    const lines = items.map(
-      (i) => `• ${i.product.name} × ${i.quantity} — ${formatRwf(i.product.price * i.quantity)}`,
+    if (!items.length) return;
+    const body = buildCartWhatsAppMessage(
+      items.map((i) => ({
+        name: i.product.name,
+        quantity: i.quantity,
+        lineTotalLabel: formatRwf(i.product.price * i.quantity),
+        productId: i.product.id,
+      })),
+      formatRwf(totalPrice),
     );
-    const body = `Hello! I would like to order:\n\n${lines.join('\n')}\n\nTotal: ${formatRwf(totalPrice)}`;
-    window.open(`https://wa.me/${digits}?text=${encodeURIComponent(body)}`, '_blank');
+    openWhatsApp(body);
   };
 
   return (

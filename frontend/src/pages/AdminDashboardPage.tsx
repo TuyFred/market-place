@@ -368,12 +368,27 @@ export function AdminDashboardPage() {
         const next = (loadDemoUsers() as UserRow[]).map((u) => (u.id === id ? { ...u, role } : u));
         saveDemoUsers(next);
         setUsers(next);
-      } else {
-        await axios.put(`/api/auth/users/${id}/role`, { role }, { headers: authHeaders() });
-        await fetchAll();
+        return;
       }
-    } catch {
-      setMsg('Error updating role');
+      const body: { role: string; currentAdminPassword?: string } = { role };
+      if (role === 'admin') {
+        const pwd = window.prompt(
+          'Confirm your admin password to grant administrator access:',
+        );
+        if (!pwd) {
+          setMsg('Role change cancelled — password required to create admins');
+          await fetchAll();
+          return;
+        }
+        body.currentAdminPassword = pwd;
+      }
+      await axios.put(`/api/auth/users/${id}/role`, body, { headers: authHeaders() });
+      setMsg(`Role updated to ${role}`);
+      await fetchAll();
+    } catch (e: unknown) {
+      const msg = axios.isAxiosError(e) ? e.response?.data?.message : null;
+      setMsg(typeof msg === 'string' ? msg : 'Error updating role');
+      await fetchAll();
     }
   };
 

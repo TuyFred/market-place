@@ -1,28 +1,32 @@
-﻿# Fix local database connection
+﻿# Local setup — real Supabase
 
-## Why you see degraded / fetch failed
+Full guide: **[SUPABASE-SETUP.md](./SUPABASE-SETUP.md)**
 
-Your app code is fine. The **Supabase project URL in .env is dead**.
+Quick path:
 
-DNS: dfvgyiwtxyksbtxgpalz.supabase.co -> Non-existent domain
+1. Create a project at https://supabase.com/dashboard  
+2. Copy URL + **service_role** + **anon** keys into `backend/.env` and `frontend/.env`  
+3. Run `supabase-schema.sql` in the Supabase SQL Editor  
+4. Then:
 
-The project was deleted or the URL is wrong. Local code cannot talk to a missing cloud database.
+```bash
+cd backend
+npm install
+npm run check-db
+npm run seed-admin
+npm run seed-products
+npm run dev
+```
 
-## Do this once
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-1. Create a project at https://supabase.com/dashboard
-2. Project Settings -> API -> copy Project URL, anon key, service_role key
-3. Update backend/.env and frontend/.env with those values
-4. Supabase SQL Editor -> run supabase-schema.sql
-5. In backend folder:
-   npm run check-db
-   npm run seed-admin
-   npm run dev
-6. In frontend folder:
-   npm run dev
+- Shop: http://localhost:5173  
+- Health: http://localhost:4000/health  
+- Admin: `admin@system.com` / `admin123@`  
+- Or use **Sign up** to create a customer account  
 
-Site: http://localhost:5173
-Health: http://localhost:4000/health (must show database connected)
-Admin: admin@system.com / admin123@
-
-After you paste new keys into .env, run npm run check-db again.
+WhatsApp orders include a **link to the product page**. Set `VITE_WHATSAPP_NUMBER` in `frontend/.env`.

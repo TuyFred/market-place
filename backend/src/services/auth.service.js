@@ -1,11 +1,28 @@
 import { supabaseAdmin } from '../config/supabase.js';
+import { ALL_ROLES, getUserRole } from '../utils/roles.js';
+import { writeAuditLog } from '../utils/audit.js';
 
 const notConfiguredError = new Error('Supabase is not configured');
 
-export async function registerCustomer(payload) {
-  if (!supabaseAdmin) {
-    throw notConfiguredError;
-  }
+function requireSupabase() {
+  if (!supabaseAdmin) throw notConfiguredError;
+}
+
+function mapPublicUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    role: getUserRole(user),
+    fullName: user.user_metadata?.full_name || ''
+  };
+}
+
+/**
+ * Public signup — ALWAYS creates a customer.
+ * Client-supplied role / isAdmin / privileges are ignored.
+ */
+export async function registerCustomer(payload, request) {
+  requireSupabase();
 
   const {
     fullName,
@@ -16,21 +33,35 @@ export async function registerCustomer(payload) {
     address
   } = payload;
 
+  // Explicitly discard any privilege escalation fields from the client body
+  if (payload.role || payload.isAdmin || payload.app_metadata || payload.user_metadata) {
+    // Do not honor — continue with customer only
+  }
+
   if (password !== confirmPassword) {
     const err = new Error('Passwords do not match');
     err.statusCode = 400;
     throw err;
   }
 
+  if (typeof password !== 'string' || password.length < 8) {
+    const err = new Error('Password must be at least 8 characters');
+    err.statusCode = 400;
+    throw err;
+  }
+
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
-    email,
+    email: String(email).trim().toLowerCase(),
     password,
     email_confirm: true,
+    app_metadata: {
+      role: 'customer'
+    },
     user_metadata: {
       full_name: fullName,
       contact_number: contactNumber,
       address,
-      role: 'customer'
+      // Keep role out of user_metadata for new accounts; app_metadata is authoritative
     }
   });
 
@@ -40,46 +71,62 @@ export async function registerCustomer(payload) {
     throw err;
   }
 
+  await writeAuditLog({
+    actorId: data.user.id,
+    actorEmail: data.user.email,
+    action: 'auth.register_customer',
+    targetType: 'user',
+    targetId: data.user.id,
+    meta: { role: 'customer' },
+    request
+  });
+
   return {
     id: data.user.id,
     email: data.user.email,
-    role: data.user.user_metadata?.role || 'customer'
+    role: 'customer'
   };
 }
 
-export async function loginUser({ email, password }) {
-  if (!supabaseAdmin) {
-    throw notConfiguredError;
-  }
+export async function loginUser({ email, password }, request) {
+  requireSupabase();
 
   const { data, error } = await supabaseAdmin.auth.signInWithPassword({
-    email,
+    email: String(email).trim().toLowerCase(),
     password
   });
 
   if (error || !data.session || !data.user) {
+    await writeAuditLog({
+      actorEmail: email,
+      action: 'auth.login_failed',
+      targetType: 'user',
+      meta: { reason: error?.message || 'invalid' },
+      request
+    });
     const err = new Error('Invalid email or password');
     err.statusCode = 401;
     throw err;
   }
 
-  const role = data.user.user_metadata?.role || 'customer';
+  await writeAuditLog({
+    actorId: data.user.id,
+    actorEmail: data.user.email,
+    action: 'auth.login_success',
+    targetType: 'user',
+    targetId: data.user.id,
+    meta: { role: getUserRole(data.user) },
+    request
+  });
 
   return {
     accessToken: data.session.access_token,
-    user: {
-      id: data.user.id,
-      email: data.user.email,
-      role,
-      fullName: data.user.user_metadata?.full_name || ''
-    }
+    user: mapPublicUser(data.user)
   };
 }
 
 export async function getUserFromToken(accessToken) {
-  if (!supabaseAdmin) {
-    throw notConfiguredError;
-  }
+  requireSupabase();
 
   const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
 
@@ -92,12 +139,27 @@ export async function getUserFromToken(accessToken) {
   return data.user;
 }
 
-/* ───── User management (admin only) ───── */
+/** Verify an admin's password before privileged actions (role change / create admin). */
+async function verifyActorPassword(actorEmail, password) {
+  if (!password || typeof password !== 'string') {
+    const err = new Error('Current admin password is required for this action');
+    err.statusCode = 400;
+    throw err;
+  }
+  const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+    email: actorEmail,
+    password
+  });
+  if (error || !data.user) {
+    const err = new Error('Admin password confirmation failed');
+    err.statusCode = 401;
+    throw err;
+  }
+  return data.user;
+}
 
 export async function listUsers() {
-  if (!supabaseAdmin) {
-    throw notConfiguredError;
-  }
+  requireSupabase();
 
   const { data, error } = await supabaseAdmin.auth.admin.listUsers();
 
@@ -110,26 +172,54 @@ export async function listUsers() {
   return (data.users || []).map((u) => ({
     id: u.id,
     email: u.email,
-    role: u.user_metadata?.role || 'customer',
+    role: getUserRole(u),
     fullName: u.user_metadata?.full_name || '',
     createdAt: u.created_at
   }));
 }
 
-export async function updateUserRole(userId, role) {
-  if (!supabaseAdmin) {
-    throw notConfiguredError;
-  }
+/**
+ * Change a user's role. Caller must be a full admin (enforced by route).
+ * Promoting to admin requires password re-entry (currentAdminPassword).
+ */
+export async function updateUserRole(userId, role, actor, currentAdminPassword, request) {
+  requireSupabase();
 
-  const validRoles = ['admin', 'manager', 'customer'];
-  if (!validRoles.includes(role)) {
-    const err = new Error(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+  if (!ALL_ROLES.includes(role)) {
+    const err = new Error(`Invalid role. Must be one of: ${ALL_ROLES.join(', ')}`);
     err.statusCode = 400;
     throw err;
   }
 
+  if (getUserRole(actor) !== 'admin') {
+    const err = new Error('Only administrators can change roles');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  if (role === 'admin') {
+    await verifyActorPassword(actor.email, currentAdminPassword);
+  }
+
+  // Fetch existing so we merge metadata instead of wiping it
+  const { data: existing, error: getErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (getErr || !existing?.user) {
+    const err = new Error(getErr?.message || 'User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const prevRole = getUserRole(existing.user);
+
+  const nextUserMeta = { ...(existing.user.user_metadata || {}) };
+  delete nextUserMeta.role; // app_metadata is the source of truth
+
   const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-    user_metadata: { role }
+    app_metadata: {
+      ...(existing.user.app_metadata || {}),
+      role
+    },
+    user_metadata: nextUserMeta
   });
 
   if (error) {
@@ -138,21 +228,88 @@ export async function updateUserRole(userId, role) {
     throw err;
   }
 
-  return {
-    id: data.user.id,
-    email: data.user.email,
-    role: data.user.user_metadata?.role || 'customer',
-    fullName: data.user.user_metadata?.full_name || ''
-  };
+  await writeAuditLog({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: 'auth.update_role',
+    targetType: 'user',
+    targetId: userId,
+    meta: { from: prevRole, to: role },
+    request
+  });
+
+  return mapPublicUser(data.user);
 }
 
-export async function resetUserPassword(userId, newPassword) {
-  if (!supabaseAdmin) {
-    throw notConfiguredError;
+/**
+ * Create a staff/admin account. Admin-only route + password re-entry required.
+ */
+export async function createStaffUser(payload, actor, request) {
+  requireSupabase();
+
+  const { email, password, fullName, role, currentAdminPassword } = payload;
+
+  if (getUserRole(actor) !== 'admin') {
+    const err = new Error('Only administrators can create staff accounts');
+    err.statusCode = 403;
+    throw err;
   }
 
-  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
-    const err = new Error('Password must be at least 6 characters');
+  if (!['admin', 'manager'].includes(role)) {
+    const err = new Error('Staff role must be admin or manager');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  await verifyActorPassword(actor.email, currentAdminPassword);
+
+  if (typeof password !== 'string' || password.length < 8) {
+    const err = new Error('Password must be at least 8 characters');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    email: String(email).trim().toLowerCase(),
+    password,
+    email_confirm: true,
+    app_metadata: { role },
+    user_metadata: {
+      full_name: fullName || '',
+      created_by: actor.id
+    }
+  });
+
+  if (error) {
+    const err = new Error(error.message);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  await writeAuditLog({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: 'auth.create_staff',
+    targetType: 'user',
+    targetId: data.user.id,
+    meta: { role, email: data.user.email },
+    request
+  });
+
+  return mapPublicUser(data.user);
+}
+
+export async function resetUserPassword(userId, newPassword, actor, request) {
+  requireSupabase();
+
+  if (getUserRole(actor) !== 'admin') {
+    const err = new Error('Only administrators can reset passwords');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+    const err = new Error('Password must be at least 8 characters');
     err.statusCode = 400;
     throw err;
   }
@@ -167,10 +324,15 @@ export async function resetUserPassword(userId, newPassword) {
     throw err;
   }
 
-  return {
-    id: data.user.id,
-    email: data.user.email,
-    role: data.user.user_metadata?.role || 'customer',
-    fullName: data.user.user_metadata?.full_name || ''
-  };
+  await writeAuditLog({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: 'auth.reset_password',
+    targetType: 'user',
+    targetId: userId,
+    meta: { result: 'ok' },
+    request
+  });
+
+  return mapPublicUser(data.user);
 }

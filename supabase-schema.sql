@@ -295,9 +295,40 @@ BEGIN
 END $$;
 
 -- ─────────────────────────────────────────────
+-- 8. AUDIT LOGS (admin actions, login events)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_id     UUID,
+  actor_email  TEXT,
+  action       TEXT NOT NULL,
+  target_type  TEXT,
+  target_id    TEXT,
+  meta         JSONB DEFAULT '{}'::jsonb,
+  ip           TEXT,
+  user_agent   TEXT,
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Service role can manage audit_logs" ON public.audit_logs;
+CREATE POLICY "Service role can manage audit_logs"
+  ON public.audit_logs FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+CREATE INDEX IF NOT EXISTS audit_logs_created_at_idx ON public.audit_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_logs_actor_id_idx ON public.audit_logs (actor_id);
+
+-- ─────────────────────────────────────────────
 -- DONE
+-- Preferred admin bootstrap (safer than SQL auth insert):
+--   cd backend && npm run seed-admin
 -- Admin login:
 --   Email    : admin@system.com
 --   Password : admin123@
 --   Dashboard: /admin/dashboard
+-- Public /api/auth/register ALWAYS creates role=customer.
+-- Creating more admins: POST /api/auth/admins (admin token + password re-entry).
 -- ============================================================

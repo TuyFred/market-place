@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { formatRwf } from '../../utils/format';
 import { SAMPLE_IMAGES } from '../../config/brand';
-import { CONTACT_RAW } from '../../utils/whatsapp';
+import { buildProductWhatsAppMessage, openWhatsApp } from '../../utils/whatsapp';
 import { fetchImageBlob } from '../../utils/image';
 import { useState, useRef, useEffect, useCallback } from 'react';
 
@@ -169,13 +169,15 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
   const orderOnWhatsApp = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const digits = CONTACT_RAW.replace(/^\+/, '');
-    if (!digits) {
-      alert('WhatsApp number is not configured correctly.');
-      return;
-    }
     const price = formatRwf(product.price);
     const imageUrl = product.imageUrl || product.imageUrls?.[0] || '';
+    const body = buildProductWhatsAppMessage({
+      name: product.name,
+      priceLabel: price,
+      category: product.category,
+      productId: product.id,
+      imageUrl,
+    });
 
     if (navigator.share && imageUrl) {
       try {
@@ -185,10 +187,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
           type: blob.type || 'image/jpeg',
         });
         if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
-          await (navigator as any).share({
-            files: [file],
-            text: `Hello! I would like to order ${product.name} (${price}).`,
-          });
+          await (navigator as any).share({ files: [file], text: body });
           return;
         }
       } catch {
@@ -196,10 +195,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
       }
     }
 
-    const body =
-      `Hello! I would like to order:\n\nProduct: ${product.name}\nPrice: ${price}\nCategory: ${product.category}` +
-      (imageUrl ? `\n\nImage: ${imageUrl}` : '');
-    window.open(`https://wa.me/${digits}?text=${encodeURIComponent(body)}`, '_blank');
+    openWhatsApp(body);
   };
 
   const onTouchStart = (e: React.TouchEvent) => {

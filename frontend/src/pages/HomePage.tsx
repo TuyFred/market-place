@@ -35,8 +35,9 @@ export function HomePage() {
     axios
       .get<Product[]>('/api/products')
       .then((res) => {
+        // Prefer real Supabase products; only use local samples if API is empty/offline
         const mapped = (res.data || []).map((p) => ({ ...p }));
-        setProducts(mapped.length ? mapped : withDemoStock(DEMO_PRODUCTS as Product[]));
+        setProducts(mapped);
       })
       .catch(() => {
         setProducts(withDemoStock(DEMO_PRODUCTS as Product[]));

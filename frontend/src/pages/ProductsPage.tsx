@@ -67,15 +67,8 @@ export function ProductsPage() {
         setCategories(cats);
         setCatsMap(map);
         const mapped = (pRes.data || []).map((p) => ({ ...p, category: map[p.category] || p.category }));
-        if (mapped.length) {
-          setProducts(mapped);
-        } else {
-          const demoFallback = (category ? getDemoProducts(category) : DEMO_PRODUCTS) as Product[];
-          const filteredDemo = search
-            ? demoFallback.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-            : demoFallback;
-          setProducts(withDemoStock(filteredDemo));
-        }
+        // Real Supabase data only when API responds (even if empty)
+        setProducts(mapped);
       })
       .catch(() => {
         const demoFallback = (category ? getDemoProducts(category) : DEMO_PRODUCTS) as Product[];

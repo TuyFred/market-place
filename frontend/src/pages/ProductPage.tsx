@@ -7,7 +7,7 @@ import { useCheckout } from '../context/CheckoutContext';
 import { useAuth } from '../context/AuthContext';
 import { DEMO_PRODUCTS, SAMPLE_IMAGES, getDemoProducts } from '../config/brand';
 import { formatRwf } from '../utils/format';
-import { CONTACT_RAW } from '../utils/whatsapp';
+import { buildProductWhatsAppMessage, openWhatsApp } from '../utils/whatsapp';
 import { fetchImageBlob } from '../utils/image';
 
 function demoAsProduct(id: string): Product | null {
@@ -167,13 +167,15 @@ export function ProductPage() {
   };
 
   const orderOnWhatsApp = async () => {
-    const digits = CONTACT_RAW.replace(/^\+/, '');
-    if (!digits) {
-      alert('WhatsApp number is not configured.');
-      return;
-    }
     const price = formatRwf(product.price);
     const imageUrl = product.imageUrl || product.imageUrls?.[0] || '';
+    const body = buildProductWhatsAppMessage({
+      name: product.name,
+      priceLabel: price,
+      category: product.category,
+      productId: product.id,
+      imageUrl,
+    });
     if (navigator.share && imageUrl) {
       try {
         const blob = await fetchImageBlob(imageUrl, product.id);
@@ -182,20 +184,14 @@ export function ProductPage() {
           type: blob.type || 'image/jpeg',
         });
         if ((navigator as any).canShare?.({ files: [file] })) {
-          await (navigator as any).share({
-            files: [file],
-            text: `Hello! I would like to order ${product.name} (${price}).`,
-          });
+          await (navigator as any).share({ files: [file], text: body });
           return;
         }
       } catch {
         /* fall through */
       }
     }
-    const body =
-      `Hello! I would like to order:\n\nProduct: ${product.name}\nPrice: ${price}\nCategory: ${product.category}` +
-      (imageUrl ? `\n\nImage: ${imageUrl}` : '');
-    window.open(`https://wa.me/${digits}?text=${encodeURIComponent(body)}`, '_blank');
+    openWhatsApp(body);
   };
 
   return (

@@ -187,24 +187,13 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
           notes,
         };
 
-        try {
-          const res = await axios.post('/api/orders', body, { headers });
-          lastOrderId = res.data?.id || lastOrderId;
-        } catch {
-          // Demo / offline fallback — keep a local receipt so checkout still completes
-          const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-          const receipt = {
-            id: localId,
-            ...body,
-            total: line.product.price * line.quantity,
-            paidAt: new Date().toISOString(),
-            payment: payNote,
-          };
-          const prev = JSON.parse(localStorage.getItem('afroluxo_local_orders') || '[]');
-          prev.unshift(receipt);
-          localStorage.setItem('afroluxo_local_orders', JSON.stringify(prev.slice(0, 40)));
-          lastOrderId = localId;
-        }
+        const res = await axios.post('/api/orders', body, { headers });
+        lastOrderId = res.data?.id || lastOrderId;
+      }
+
+      if (!lastOrderId) {
+        setError('Order was not saved. Check Supabase connection and try again.');
+        return;
       }
 
       // Never persist full card data
@@ -212,8 +201,15 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
       setCvc('');
       clearCart();
       setSuccessId(lastOrderId);
-    } catch {
-      setError('Payment could not be completed. Please try again.');
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err)
+        ? (err.response?.data?.message || err.response?.data?.error || err.message)
+        : '';
+      setError(
+        typeof msg === 'string' && msg
+          ? msg
+          : 'Order could not be saved. Connect Supabase and ensure the backend is running.',
+      );
     } finally {
       setSubmitting(false);
     }

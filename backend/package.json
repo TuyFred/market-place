@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "check-db": "node src/scripts/check-db.js",
-    "seed-admin": "node src/scripts/seed-admin.js"
+    "seed-admin": "node src/scripts/seed-admin.js",
+    "seed-products": "node src/scripts/seed-products.js"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.0",

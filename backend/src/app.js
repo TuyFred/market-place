@@ -4,13 +4,18 @@ import { supabaseAdmin } from './config/supabase.js';
 import { registerCors } from './plugins/cors.js';
 import { registerSwagger } from './plugins/swagger.js';
 import { registerMultipart } from './plugins/multipart.js';
+import { registerSecurityHeaders } from './plugins/securityHeaders.js';
 import { registerRoutes } from './routes/index.js';
 
 export async function buildApp(options = {}) {
   const fastify = Fastify({
     logger: true,
+    bodyLimit: 1024 * 1024, // 1 MB JSON body limit (uploads use multipart)
+    trustProxy: true,
     ...options
   });
+
+  await registerSecurityHeaders(fastify);
 
   fastify.get('/health', async () => {
     let database = 'not_configured';

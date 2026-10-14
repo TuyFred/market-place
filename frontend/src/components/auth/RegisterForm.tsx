@@ -24,13 +24,21 @@ export function RegisterForm({ onRegistered, variant = 'light' }: Props) {
     e.preventDefault();
     setError(''); setSuccess('');
     if (password !== confirmPassword) { setError('Passwords mismatch'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true);
     try {
       await axios.post('/api/auth/register', { fullName, contactNumber, address, email, password, confirmPassword });
-      setSuccess('Account ready!');
+      setSuccess('Account created! You can sign in now.');
       setTimeout(() => onRegistered?.(), 1000);
-    } catch {
-      setError('Check your details');
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err)
+        ? (err.response?.data?.message || err.response?.data?.error || err.message)
+        : '';
+      if (!err || (axios.isAxiosError(err) && !err.response)) {
+        setError('Cannot reach the server. Start the backend and check Supabase keys.');
+      } else {
+        setError(typeof msg === 'string' && msg ? msg : 'Could not create account. Check your details.');
+      }
     } finally {
       setLoading(false);
     }
