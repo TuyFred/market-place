@@ -4,7 +4,9 @@ import {
   listUsers,
   updateUserRole,
   resetUserPassword,
-  createStaffUser
+  createStaffUser,
+  requestPasswordReset,
+  completePasswordReset
 } from '../services/auth.service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 
@@ -73,6 +75,26 @@ export async function createStaffHandler(request, reply) {
   try {
     const user = await createStaffUser(request.body, request.user, request);
     return sendSuccess(reply, 201, user);
+  } catch (err) {
+    const statusCode = err.statusCode || 400;
+    return sendError(reply, statusCode, err.message);
+  }
+}
+
+export async function forgotPasswordHandler(request, reply) {
+  try {
+    const result = await requestPasswordReset(request.body.email, request);
+    return sendSuccess(reply, 200, result);
+  } catch (err) {
+    const statusCode = err.statusCode || 400;
+    return sendError(reply, statusCode, err.message);
+  }
+}
+
+export async function resetPasswordHandler(request, reply) {
+  try {
+    const result = await completePasswordReset(request.body, request);
+    return sendSuccess(reply, 200, result);
   } catch (err) {
     const statusCode = err.statusCode || 400;
     return sendError(reply, statusCode, err.message);

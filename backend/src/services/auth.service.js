@@ -336,3 +336,165 @@ export async function resetUserPassword(userId, newPassword, actor, request) {
 
   return mapPublicUser(data.user);
 }
+
+async function findAuthUserByEmail(email) {
+  const normalized = String(email).trim().toLowerCase();
+  // Paginate lightly — fine for small shops; prefer filter when available
+  let page = 1;
+  const perPage = 200;
+  while (page <= 10) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const users = data?.users || [];
+    const found = users.find((u) => u.email?.toLowerCase() === normalized);
+    if (found) return found;
+    if (users.length < perPage) break;
+    page += 1;
+  }
+  return null;
+}
+
+/**
+ * Request password reset email via Brevo.
+ * Always returns a generic success message (no email enumeration).
+ */
+export async function requestPasswordReset(email, request) {
+  requireSupabase();
+  const { env } = await import('../config/env.js');
+  const { createRawToken, hashToken } = await import('../utils/cryptoTokens.js');
+  const { sendBrevoEmail, passwordResetEmailHtml } = await import('../utils/brevo.js');
+
+  const normalized = String(email || '')
+    .trim()
+    .toLowerCase();
+  if (!normalized || !normalized.includes('@')) {
+    const err = new Error('Enter a valid email address');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const generic = {
+    message: 'If an account exists for that email, a reset link has been sent.'
+  };
+
+  const user = await findAuthUserByEmail(normalized);
+  if (!user) {
+    await writeAuditLog({
+      actorEmail: normalized,
+      action: 'auth.forgot_password_unknown',
+      targetType: 'user',
+      request
+    });
+    return generic;
+  }
+
+  const rawToken = createRawToken(32);
+  const tokenHash = hashToken(rawToken);
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+  // Invalidate previous unused tokens for this email
+  await supabaseAdmin
+    .from('password_reset_tokens')
+    .update({ used_at: new Date().toISOString() })
+    .eq('email', normalized)
+    .is('used_at', null);
+
+  const { error: insertErr } = await supabaseAdmin.from('password_reset_tokens').insert({
+    user_id: user.id,
+    email: normalized,
+    token_hash: tokenHash,
+    expires_at: expiresAt
+  });
+
+  if (insertErr) {
+    const err = new Error(
+      insertErr.message.includes('password_reset_tokens')
+        ? 'Password reset table missing. Run supabase-migrate-auth-newsletter.sql'
+        : insertErr.message
+    );
+    err.statusCode = 500;
+    throw err;
+  }
+
+  const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${encodeURIComponent(rawToken)}`;
+  const name = user.user_metadata?.full_name || '';
+
+  await sendBrevoEmail({
+    to: normalized,
+    subject: 'Reset your AFROLUXO password',
+    html: passwordResetEmailHtml({ name, resetUrl }),
+    text: `Reset your password: ${resetUrl}`
+  });
+
+  await writeAuditLog({
+    actorId: user.id,
+    actorEmail: normalized,
+    action: 'auth.forgot_password_sent',
+    targetType: 'user',
+    targetId: user.id,
+    request
+  });
+
+  return generic;
+}
+
+export async function completePasswordReset({ token, password }, request) {
+  requireSupabase();
+  const { hashToken } = await import('../utils/cryptoTokens.js');
+
+  if (!token || typeof token !== 'string') {
+    const err = new Error('Reset link is invalid or expired');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (!password || password.length < 8) {
+    const err = new Error('Password must be at least 8 characters');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const tokenHash = hashToken(token);
+  const { data: row, error } = await supabaseAdmin
+    .from('password_reset_tokens')
+    .select('*')
+    .eq('token_hash', tokenHash)
+    .is('used_at', null)
+    .maybeSingle();
+
+  if (error || !row) {
+    const err = new Error('Reset link is invalid or expired');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (new Date(row.expires_at).getTime() < Date.now()) {
+    const err = new Error('Reset link has expired. Request a new one.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(row.user_id, {
+    password
+  });
+  if (updErr) {
+    const err = new Error(updErr.message);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  await supabaseAdmin
+    .from('password_reset_tokens')
+    .update({ used_at: new Date().toISOString() })
+    .eq('id', row.id);
+
+  await writeAuditLog({
+    actorId: row.user_id,
+    actorEmail: row.email,
+    action: 'auth.password_reset_completed',
+    targetType: 'user',
+    targetId: row.user_id,
+    request
+  });
+
+  return { message: 'Password updated. You can sign in now.' };
+}

@@ -4,14 +4,17 @@ import {
   listUsersHandler,
   updateUserRoleHandler,
   resetUserPasswordHandler,
-  createStaffHandler
+  createStaffHandler,
+  forgotPasswordHandler,
+  resetPasswordHandler
 } from '../../controllers/auth.controller.js';
 import { authGuard } from '../../middlewares/auth.guard.js';
 import { adminGuard, adminOnlyGuard } from '../../middlewares/admin.guard.js';
 import {
   loginRateLimitGuard,
   registerRateLimitGuard,
-  mutationRateLimitGuard
+  mutationRateLimitGuard,
+  forgotPasswordRateLimitGuard
 } from '../../middlewares/rateLimit.guard.js';
 import { errorResponseSchema } from '../../schemas/error.schema.js';
 
@@ -201,6 +204,62 @@ export async function authRoutes(fastify) {
       }
     },
     resetUserPasswordHandler
+  );
+
+  /* ── Public: forgot / reset password (Brevo email) ── */
+  fastify.post(
+    '/forgot-password',
+    {
+      preHandler: [forgotPasswordRateLimitGuard],
+      schema: {
+        tags: ['Auth'],
+        body: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: { type: 'string', format: 'email' }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { message: { type: 'string' } }
+          },
+          400: errorResponseSchema,
+          429: errorResponseSchema,
+          500: errorResponseSchema
+        }
+      }
+    },
+    forgotPasswordHandler
+  );
+
+  fastify.post(
+    '/reset-password',
+    {
+      preHandler: [forgotPasswordRateLimitGuard],
+      schema: {
+        tags: ['Auth'],
+        body: {
+          type: 'object',
+          required: ['token', 'password'],
+          additionalProperties: false,
+          properties: {
+            token: { type: 'string', minLength: 20 },
+            password: { type: 'string', minLength: 8, maxLength: 128 }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { message: { type: 'string' } }
+          },
+          400: errorResponseSchema
+        }
+      }
+    },
+    resetPasswordHandler
   );
 
   /* ── Admin only: create admin/manager (not public) ── */

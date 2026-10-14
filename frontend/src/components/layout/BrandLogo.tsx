@@ -4,7 +4,6 @@ import { BRAND } from '../../config/brand';
 type Props = {
   to?: string;
   className?: string;
-  /** Larger mark for hero / page titles */
   size?: 'nav' | 'hero';
 };
 
@@ -21,12 +20,21 @@ export function BrandLogo({ to = '/', className = '', size = 'nav' }: Props) {
       >
         {BRAND.initials}
       </span>
-      <span
-        className={`block truncate font-display font-bold uppercase tracking-[0.14em] text-black leading-none ${
-          isHero ? 'text-xl sm:text-2xl md:text-3xl' : 'text-[13px] sm:text-[15px]'
-        }`}
-      >
-        {BRAND.shortName}
+      <span className="min-w-0 leading-none">
+        <span
+          className={`block truncate font-display font-bold uppercase tracking-[0.14em] text-black ${
+            isHero ? 'text-xl sm:text-2xl md:text-3xl' : 'text-[13px] sm:text-[15px]'
+          }`}
+        >
+          {BRAND.shortName}
+        </span>
+        <span
+          className={`mt-0.5 block font-semibold uppercase tracking-[0.2em] text-neutral-500 ${
+            isHero ? 'text-[11px] sm:text-xs' : 'text-[8px] sm:text-[9px]'
+          }`}
+        >
+          {BRAND.byline}
+        </span>
       </span>
     </span>
   );

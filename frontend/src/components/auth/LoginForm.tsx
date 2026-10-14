@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 type Props = {
@@ -7,10 +8,11 @@ type Props = {
     accessToken: string;
   }) => void;
   onNeedAccount?: () => void;
+  onForgotPassword?: () => void;
   variant?: 'dark' | 'light';
 };
 
-export function LoginForm({ onSuccess, onNeedAccount, variant = 'light' }: Props) {
+export function LoginForm({ onSuccess, onNeedAccount, onForgotPassword, variant = 'light' }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -67,6 +69,22 @@ export function LoginForm({ onSuccess, onNeedAccount, variant = 'light' }: Props
       <div className="space-y-1.5">
         <div className="flex justify-between items-end px-1">
           <label className="text-[11px] font-medium text-slate-400">Password</label>
+          {onForgotPassword ? (
+            <button
+              type="button"
+              onClick={onForgotPassword}
+              className={`text-[11px] font-semibold ${variant === 'dark' ? 'text-amber-300' : 'text-neutral-600'} hover:underline`}
+            >
+              Forgot password?
+            </button>
+          ) : (
+            <Link
+              to="/forgot-password"
+              className={`text-[11px] font-semibold ${variant === 'dark' ? 'text-amber-300' : 'text-neutral-600'} hover:underline`}
+            >
+              Forgot password?
+            </Link>
+          )}
         </div>
         <div className="relative">
           <input

@@ -2,6 +2,7 @@ import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 import { useAuth } from '../../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BRAND } from '../../config/brand';
 
 export function AuthModal() {
@@ -11,6 +12,7 @@ export function AuthModal() {
     closeAuthModal,
     handleLoginSuccess
   } = useAuth();
+  const navigate = useNavigate();
 
   const [mode, setMode] = useState<'login' | 'register'>(authModalMode);
   const [visible, setVisible] = useState(false);
@@ -53,9 +55,11 @@ export function AuthModal() {
               {BRAND.initials}
             </span>
             <div>
-              <p className="font-display text-sm font-bold text-ink leading-none">{BRAND.shortName}</p>
+              <p className="font-display text-sm font-bold uppercase tracking-[0.12em] text-ink leading-none">
+                {BRAND.shortName}
+              </p>
               <p className="text-[10px] text-ink/45 mt-0.5">
-                <span className="text-forest font-semibold tracking-wide">{BRAND.byline}</span>
+                <span className="font-semibold uppercase tracking-[0.16em] text-forest">{BRAND.byline}</span>
                 {' · '}
                 {mode === 'login' ? 'Sign in' : 'Create account'}
               </p>
@@ -95,6 +99,10 @@ export function AuthModal() {
             <LoginForm
               variant="light"
               onNeedAccount={() => setMode('register')}
+              onForgotPassword={() => {
+                handleClose();
+                navigate('/forgot-password');
+              }}
               onSuccess={({ user, accessToken }) => {
                 handleLoginSuccess({ user, token: accessToken });
                 if (user.role === 'admin' || user.role === 'manager') {

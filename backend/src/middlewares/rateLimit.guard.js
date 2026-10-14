@@ -36,6 +36,25 @@ export async function registerRateLimitGuard(request, reply) {
   }
 }
 
+/** Forgot password: 5 / hour per IP */
+export async function forgotPasswordRateLimitGuard(request, reply) {
+  const ip = clientIp(request);
+  const email = String(request.body?.email || '')
+    .trim()
+    .toLowerCase();
+  const result = consumeRateLimit({
+    key: `forgot:${ip}:${email}`,
+    limit: 5,
+    windowMs: 60 * 60 * 1000
+  });
+  if (!result.allowed) {
+    reply.header('Retry-After', String(result.retryAfterSec));
+    return reply.code(429).send({
+      message: `Too many reset requests. Try again in ${result.retryAfterSec} seconds.`
+    });
+  }
+}
+
 /** General API abuse: 120 req / min per IP on sensitive mutations */
 export async function mutationRateLimitGuard(request, reply) {
   const ip = clientIp(request);

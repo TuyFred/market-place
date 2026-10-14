@@ -9,6 +9,8 @@ import { CustomerDashboardPage } from './pages/CustomerDashboardPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AuthRedirect } from './pages/AuthRedirect';
 import { TrackOrderPage } from './pages/TrackOrderPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<AuthRedirect mode="login" />} />
         <Route path="/register" element={<AuthRedirect mode="register" />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/cart" element={<CartPage />} />
