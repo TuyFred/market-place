@@ -9,6 +9,7 @@ import { SAMPLE_IMAGES } from '../config/brand';
 import { formatRwf } from '../utils/format';
 import { buildProductWhatsAppMessage, openWhatsApp } from '../utils/whatsapp';
 import { fetchImageBlob } from '../utils/image';
+import { AppBackButton } from '../components/layout/AppBackButton';
 
 export function ProductPage() {
   const { id } = useParams();
@@ -77,9 +78,9 @@ export function ProductPage() {
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
         <p className="text-lg font-semibold text-black">Product not found</p>
         <p className="mt-2 text-sm text-neutral-500">This item may have been removed.</p>
-        <Link to="/products" className="mt-6 inline-block text-sm font-semibold underline">
-          Back to catalog
-        </Link>
+        <div className="mt-6">
+          <AppBackButton to="/products" label="Back to catalog" />
+        </div>
       </div>
     );
   }
@@ -134,12 +135,7 @@ export function ProductPage() {
   return (
     <section className="bg-white text-black">
       <div className="mx-auto w-full max-w-6xl px-3 pb-12 pt-4 sm:px-6 sm:pt-8 lg:px-10">
-        <Link
-          to="/products"
-          className="inline-flex min-h-[40px] items-center text-[13px] font-medium text-neutral-500 hover:text-black"
-        >
-          ← Back to Products
-        </Link>
+        <AppBackButton to="/products" label="Back to products" />
 
         <div className="mt-4 grid gap-8 lg:grid-cols-2 lg:gap-12">
           <div>

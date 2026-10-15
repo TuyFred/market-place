@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { formatRwf } from '../utils/format';
 import { BRAND, SAMPLE_IMAGES } from '../config/brand';
+import { useAuth } from '../context/AuthContext';
+import { AppBackButton } from '../components/layout/AppBackButton';
+import { clearAuthStorage, hardRedirectHome } from '../utils/session';
 
 type Product = {
   id: string;
@@ -82,6 +85,7 @@ const statusColors: Record<string, string> = {
 
 export function AdminDashboardPage() {
   const navigate = useNavigate();
+  const { handleLogout } = useAuth();
   const [tab, setTab] = useState<Tab>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -151,7 +155,8 @@ export function AdminDashboardPage() {
   useEffect(() => {
     const role = storedUser?.role;
     if (!storedUser || (role !== 'admin' && role !== 'manager')) {
-      navigate('/login', { replace: true });
+      clearAuthStorage();
+      hardRedirectHome('sessionExpired');
       return;
     }
     setProfileName(storedUser.fullName || '');
@@ -600,13 +605,7 @@ export function AdminDashboardPage() {
           <p className="mt-0.5 text-xs font-semibold capitalize text-black">{storedUser?.role}</p>
           <button
             type="button"
-            onClick={() => {
-              localStorage.removeItem('admin_token');
-              localStorage.removeItem('admin_user');
-              localStorage.removeItem('customer_token');
-              localStorage.removeItem('customer_user');
-              navigate('/');
-            }}
+            onClick={() => handleLogout()}
             className="mt-3 text-xs text-neutral-500 hover:text-red-600"
           >
             Sign out
@@ -629,9 +628,15 @@ export function AdminDashboardPage() {
                 <span className="h-0.5 w-4 bg-black" />
               </span>
             </button>
+            <AppBackButton to="/" label="Back to shop" className="hidden min-h-[36px] items-center gap-1 text-xs font-semibold text-neutral-500 hover:text-black sm:inline-flex" />
             <h1 className="truncate text-base font-bold capitalize sm:text-lg">{tab}</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
+            <AppBackButton
+              to="/"
+              label="Shop"
+              className="inline-flex min-h-[36px] items-center rounded-full border border-neutral-200 px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 sm:hidden"
+            />
             {tab === 'products' && (
               <button type="button" onClick={openNewProduct} className={`${btnPrimary} !px-3 !py-2 sm:!px-5`}>
                 + Product

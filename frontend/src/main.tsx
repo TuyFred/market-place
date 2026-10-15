@@ -7,22 +7,36 @@ import './styles/global.css';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { CheckoutProvider } from './context/CheckoutContext';
+import { clearAuthStorage, hardRedirectHome, isProtectedPath } from './utils/session';
 
 // Same-origin `/api` by default (Vercel rewrite → Render). Avoids CORS on www.afroluxo.com.
-// Set VITE_API_URL only when there is no proxy (e.g. direct API host).
 const configuredApi = (import.meta.env.VITE_API_URL || '').trim();
 axios.defaults.baseURL = configuredApi || '/';
 
-// Quiet expected empty/demo misses in production network noise
 axios.interceptors.response.use(
   (r) => r,
   (err) => {
     const url = String(err?.config?.url || '');
-    if (err?.response?.status === 404 && /\/api\/(settings|products\/demo-)/.test(url)) {
-      return Promise.resolve({ data: url.includes('settings') ? {} : null, status: 404, config: err.config, headers: {}, statusText: 'Not Found' });
+    const status = err?.response?.status;
+    if (status === 404 && /\/api\/(settings|products\/demo-)/.test(url)) {
+      return Promise.resolve({
+        data: url.includes('settings') ? {} : null,
+        status: 404,
+        config: err.config,
+        headers: {},
+        statusText: 'Not Found',
+      });
+    }
+    // Expired / missing session — never leave a protected UI open
+    if (status === 401) {
+      const isAuthCall = /\/api\/auth\/(login|register)/.test(url);
+      if (!isAuthCall && isProtectedPath(window.location.pathname)) {
+        clearAuthStorage();
+        hardRedirectHome('sessionExpired');
+      }
     }
     return Promise.reject(err);
-  }
+  },
 );
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
@@ -41,5 +55,5 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

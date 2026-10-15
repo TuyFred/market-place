@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatRwf } from '../utils/format';
 import { openWhatsApp, CONTACT_DISPLAY } from '../utils/whatsapp';
+import { AppBackButton } from '../components/layout/AppBackButton';
 
 type CustomerOrder = {
   id: string;
@@ -126,12 +127,11 @@ export function CustomerDashboardPage() {
             <p className="mt-1 text-sm text-neutral-500">{user?.email}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
+            <AppBackButton
               to="/"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-200 bg-white px-4 text-sm font-semibold text-black"
-            >
-              Continue shopping
-            </Link>
+              label="Back to shop"
+              className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-neutral-200 bg-white px-4 text-sm font-semibold text-black"
+            />
             <button
               type="button"
               onClick={() =>

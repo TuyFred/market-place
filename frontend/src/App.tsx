@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
+import { RequireAuth } from './components/auth/RequireAuth';
 import { HomePage } from './pages/HomePage';
 import { ProductsPage } from './pages/ProductsPage';
 import { ProductPage } from './pages/ProductPage';
@@ -15,10 +16,15 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 export default function App() {
   return (
     <Routes>
-      {/* admin dashboard uses its own full-screen layout */}
-      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <RequireAuth roles={['admin', 'manager']}>
+            <AdminDashboardPage />
+          </RequireAuth>
+        }
+      />
 
-      {/* public pages wrapped in Layout (Navbar + Footer) */}
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<AuthRedirect mode="login" />} />
@@ -30,7 +36,14 @@ export default function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/track" element={<TrackOrderPage />} />
-        <Route path="/customer/dashboard" element={<CustomerDashboardPage />} />
+        <Route
+          path="/customer/dashboard"
+          element={
+            <RequireAuth>
+              <CustomerDashboardPage />
+            </RequireAuth>
+          }
+        />
       </Route>
     </Routes>
   );

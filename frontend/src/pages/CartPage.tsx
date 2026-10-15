@@ -5,6 +5,7 @@ import { SAMPLE_IMAGES } from '../config/brand';
 import { formatRwf } from '../utils/format';
 import { Link } from 'react-router-dom';
 import { buildCartWhatsAppMessage, openWhatsApp } from '../utils/whatsapp';
+import { AppBackButton } from '../components/layout/AppBackButton';
 
 export function CartPage() {
   const { items, totalItems, removeFromCart, updateQuantity } = useCart();
@@ -37,7 +38,8 @@ export function CartPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-3 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-10">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Shopping bag</p>
+      <AppBackButton to="/" label="Back to shop" />
+      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Shopping bag</p>
       <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Your cart</h1>
       <p className="mt-1 text-sm text-neutral-500">
         {totalItems === 0 ? 'Your cart is empty.' : `${totalItems} item${totalItems === 1 ? '' : 's'}`}
