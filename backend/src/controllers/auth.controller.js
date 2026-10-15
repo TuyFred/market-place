@@ -6,7 +6,11 @@ import {
   resetUserPassword,
   createStaffUser,
   requestPasswordReset,
-  completePasswordReset
+  completePasswordReset,
+  updateUserProfileAdmin,
+  setUserSuspended,
+  deleteUserAccount,
+  broadcastEmailToUsers
 } from '../services/auth.service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 
@@ -88,6 +92,48 @@ export async function forgotPasswordHandler(request, reply) {
   } catch (err) {
     const statusCode = err.statusCode || 400;
     return sendError(reply, statusCode, err.message);
+  }
+}
+
+export async function updateUserAdminHandler(request, reply) {
+  try {
+    const user = await updateUserProfileAdmin(request.params.id, request.body, request.user, request);
+    return sendSuccess(reply, 200, user);
+  } catch (err) {
+    return sendError(reply, err.statusCode || 400, err.message);
+  }
+}
+
+export async function suspendUserHandler(request, reply) {
+  try {
+    const result = await setUserSuspended(
+      request.params.id,
+      !!request.body?.suspended,
+      request.body?.message || '',
+      request.user,
+      request
+    );
+    return sendSuccess(reply, 200, result);
+  } catch (err) {
+    return sendError(reply, err.statusCode || 400, err.message);
+  }
+}
+
+export async function deleteUserHandler(request, reply) {
+  try {
+    const result = await deleteUserAccount(request.params.id, request.user, request);
+    return sendSuccess(reply, 200, result);
+  } catch (err) {
+    return sendError(reply, err.statusCode || 400, err.message);
+  }
+}
+
+export async function broadcastEmailHandler(request, reply) {
+  try {
+    const result = await broadcastEmailToUsers(request.body, request.user, request);
+    return sendSuccess(reply, 200, result);
+  } catch (err) {
+    return sendError(reply, err.statusCode || 400, err.message);
   }
 }
 

@@ -13,7 +13,9 @@ function mapPublicUser(user) {
     id: user.id,
     email: user.email,
     role: getUserRole(user),
-    fullName: user.user_metadata?.full_name || ''
+    fullName: user.user_metadata?.full_name || '',
+    suspended: !!user.app_metadata?.suspended,
+    createdAt: user.created_at
   };
 }
 
@@ -109,6 +111,14 @@ export async function loginUser({ email, password }, request) {
     throw err;
   }
 
+  if (data.user.app_metadata?.suspended) {
+    const err = new Error(
+      'Your account has been suspended. Please contact AFROLUXO support for help.'
+    );
+    err.statusCode = 403;
+    throw err;
+  }
+
   await writeAuditLog({
     actorId: data.user.id,
     actorEmail: data.user.email,
@@ -169,13 +179,204 @@ export async function listUsers() {
     throw err;
   }
 
-  return (data.users || []).map((u) => ({
-    id: u.id,
-    email: u.email,
-    role: getUserRole(u),
-    fullName: u.user_metadata?.full_name || '',
-    createdAt: u.created_at
-  }));
+  return (data.users || []).map((u) => mapPublicUser(u));
+}
+
+export async function updateUserProfileAdmin(userId, payload, actor, request) {
+  requireSupabase();
+  if (getUserRole(actor) !== 'admin') {
+    const err = new Error('Only administrators can edit users');
+    err.statusCode = 403;
+    throw err;
+  }
+  const { data: existing, error: getErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (getErr || !existing?.user) {
+    const err = new Error(getErr?.message || 'User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  const updates = {
+    user_metadata: {
+      ...(existing.user.user_metadata || {}),
+      full_name: payload.fullName ?? existing.user.user_metadata?.full_name
+    }
+  };
+  if (payload.email && payload.email !== existing.user.email) {
+    updates.email = String(payload.email).trim().toLowerCase();
+    updates.email_confirm = true;
+  }
+  const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, updates);
+  if (error) {
+    const err = new Error(error.message);
+    err.statusCode = 400;
+    throw err;
+  }
+  await writeAuditLog({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: 'auth.update_user',
+    targetType: 'user',
+    targetId: userId,
+    request
+  });
+  return mapPublicUser(data.user);
+}
+
+export async function setUserSuspended(userId, suspended, message, actor, request) {
+  requireSupabase();
+  if (getUserRole(actor) !== 'admin') {
+    const err = new Error('Only administrators can suspend users');
+    err.statusCode = 403;
+    throw err;
+  }
+  if (userId === actor.id) {
+    const err = new Error('You cannot suspend your own account');
+    err.statusCode = 400;
+    throw err;
+  }
+  const { data: existing, error: getErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (getErr || !existing?.user) {
+    const err = new Error(getErr?.message || 'User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    app_metadata: {
+      ...(existing.user.app_metadata || {}),
+      suspended: !!suspended,
+      suspend_reason: suspended ? String(message || '').slice(0, 500) : null
+    }
+  });
+  if (error) {
+    const err = new Error(error.message);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  let emailSent = false;
+  if (existing.user.email) {
+    try {
+      const { sendBrevoEmail, suspendNoticeEmailHtml } = await import('../utils/brevo.js');
+      const subject = suspended
+        ? 'Your AFROLUXO account has been suspended'
+        : 'Your AFROLUXO account has been reinstated';
+      await sendBrevoEmail({
+        to: existing.user.email,
+        subject,
+        html: suspendNoticeEmailHtml({
+          name: existing.user.user_metadata?.full_name,
+          suspended: !!suspended,
+          message: message || ''
+        })
+      });
+      emailSent = true;
+    } catch (e) {
+      console.warn('Suspend email failed:', e.message);
+    }
+  }
+
+  await writeAuditLog({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: suspended ? 'auth.suspend_user' : 'auth.unsuspend_user',
+    targetType: 'user',
+    targetId: userId,
+    meta: { emailSent },
+    request
+  });
+
+  return { user: mapPublicUser(data.user), emailSent };
+}
+
+export async function deleteUserAccount(userId, actor, request) {
+  requireSupabase();
+  if (getUserRole(actor) !== 'admin') {
+    const err = new Error('Only administrators can delete users');
+    err.statusCode = 403;
+    throw err;
+  }
+  if (userId === actor.id) {
+    const err = new Error('You cannot delete your own account');
+    err.statusCode = 400;
+    throw err;
+  }
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  if (error) {
+    const err = new Error(error.message);
+    err.statusCode = 400;
+    throw err;
+  }
+  await writeAuditLog({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: 'auth.delete_user',
+    targetType: 'user',
+    targetId: userId,
+    request
+  });
+  return { ok: true };
+}
+
+export async function broadcastEmailToUsers({ subject, body, audience }, actor, request) {
+  requireSupabase();
+  if (getUserRole(actor) !== 'admin') {
+    const err = new Error('Only administrators can broadcast email');
+    err.statusCode = 403;
+    throw err;
+  }
+  const subj = String(subject || '').trim();
+  const htmlBody = String(body || '').trim();
+  if (subj.length < 3 || htmlBody.length < 10) {
+    const err = new Error('Subject and message are required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const { data, error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+  if (error) {
+    const err = new Error(error.message);
+    err.statusCode = 500;
+    throw err;
+  }
+
+  let users = data.users || [];
+  if (audience === 'customers') {
+    users = users.filter((u) => getUserRole(u) === 'customer');
+  } else if (audience === 'staff') {
+    users = users.filter((u) => ['admin', 'manager'].includes(getUserRole(u)));
+  }
+  users = users.filter((u) => u.email && !u.app_metadata?.suspended);
+
+  const { sendBrevoEmail, broadcastEmailHtml } = await import('../utils/brevo.js');
+  let sent = 0;
+  let failed = 0;
+  for (const u of users) {
+    try {
+      await sendBrevoEmail({
+        to: u.email,
+        subject: subj,
+        html: broadcastEmailHtml({
+          name: u.user_metadata?.full_name,
+          subject: subj,
+          body: htmlBody
+        })
+      });
+      sent += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+
+  await writeAuditLog({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: 'auth.broadcast_email',
+    targetType: 'users',
+    meta: { sent, failed, audience: audience || 'all' },
+    request
+  });
+
+  return { sent, failed, total: users.length };
 }
 
 /**

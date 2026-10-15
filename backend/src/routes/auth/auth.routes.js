@@ -6,7 +6,11 @@ import {
   resetUserPasswordHandler,
   createStaffHandler,
   forgotPasswordHandler,
-  resetPasswordHandler
+  resetPasswordHandler,
+  updateUserAdminHandler,
+  suspendUserHandler,
+  deleteUserHandler,
+  broadcastEmailHandler
 } from '../../controllers/auth.controller.js';
 import { authGuard } from '../../middlewares/auth.guard.js';
 import { adminGuard, adminOnlyGuard } from '../../middlewares/admin.guard.js';
@@ -287,5 +291,29 @@ export async function authRoutes(fastify) {
       }
     },
     createStaffHandler
+  );
+
+  fastify.put(
+    '/users/:id',
+    { preHandler: [mutationRateLimitGuard, authGuard, adminOnlyGuard] },
+    updateUserAdminHandler
+  );
+
+  fastify.post(
+    '/users/:id/suspend',
+    { preHandler: [mutationRateLimitGuard, authGuard, adminOnlyGuard] },
+    suspendUserHandler
+  );
+
+  fastify.delete(
+    '/users/:id',
+    { preHandler: [mutationRateLimitGuard, authGuard, adminOnlyGuard] },
+    deleteUserHandler
+  );
+
+  fastify.post(
+    '/broadcast-email',
+    { preHandler: [mutationRateLimitGuard, authGuard, adminOnlyGuard] },
+    broadcastEmailHandler
   );
 }

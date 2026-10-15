@@ -9,6 +9,7 @@ import { SAMPLE_IMAGES } from '../config/brand';
 import { formatRwf } from '../utils/format';
 import { orderProductOnWhatsApp } from '../utils/orderWhatsApp';
 import { AppBackButton } from '../components/layout/AppBackButton';
+import { ProductReviews } from '../components/products/ProductReviews';
 
 export function ProductPage() {
   const { id } = useParams();
@@ -177,6 +178,8 @@ export function ProductPage() {
             </ul>
           </div>
         </div>
+
+        {product.id && <ProductReviews productId={product.id} />}
 
         {related.length > 0 && (
           <div className="mt-16">

@@ -6,6 +6,7 @@ import { BRAND, SAMPLE_IMAGES } from '../config/brand';
 import { useAuth } from '../context/AuthContext';
 import { AppBackButton } from '../components/layout/AppBackButton';
 import { clearAuthStorage, hardRedirectHome } from '../utils/session';
+import { AdminStatsPanel } from '../components/admin/AdminStatsPanel';
 
 type Product = {
   id: string;
@@ -47,8 +48,15 @@ type PaymentSettings = {
   supportPhone: string;
   instructions: string;
 };
-type UserRow = { id: string; email: string; role: string; fullName: string; createdAt: string };
-type Tab = 'overview' | 'products' | 'categories' | 'orders' | 'users' | 'settings' | 'profile';
+type UserRow = {
+  id: string;
+  email: string;
+  role: string;
+  fullName: string;
+  createdAt?: string;
+  suspended?: boolean;
+};
+type Tab = 'overview' | 'stats' | 'products' | 'categories' | 'orders' | 'users' | 'reviews' | 'settings' | 'profile';
 
 function authHeaders() {
   const t = localStorage.getItem('admin_token') || localStorage.getItem('customer_token');
@@ -98,6 +106,22 @@ export function AdminDashboardPage() {
   const [editingProd, setEditingProd] = useState<string | null>(null);
   const [showProdModal, setShowProdModal] = useState(false);
   const [showCatModal, setShowCatModal] = useState(false);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [showUserEditModal, setShowUserEditModal] = useState(false);
+  const [showSuspendModal, setShowSuspendModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null);
+  const [suspendMessage, setSuspendMessage] = useState('');
+  const [broadcastForm, setBroadcastForm] = useState({
+    subject: '',
+    body: '',
+    audience: 'all' as 'all' | 'customers' | 'staff',
+  });
+  const [adminReviews, setAdminReviews] = useState<
+    { id: string; rating: number; body: string; user_name?: string; is_visible?: boolean; products?: { name?: string } | null }[]
+  >([]);
+  const [ordersPage, setOrdersPage] = useState(1);
   const [catForm, setCatForm] = useState<{ name: string; slug: string; parent_id: string }>({
     name: '',
     slug: '',
@@ -191,11 +215,31 @@ export function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = showProdModal || showCatModal || viewingProd || viewingOrder ? 'hidden' : '';
+    const anyModal =
+      showProdModal ||
+      showCatModal ||
+      showPayModal ||
+      showStaffModal ||
+      showBroadcastModal ||
+      showUserEditModal ||
+      showSuspendModal ||
+      viewingProd ||
+      viewingOrder;
+    document.body.style.overflow = anyModal ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showProdModal, showCatModal, viewingProd, viewingOrder]);
+  }, [
+    showProdModal,
+    showCatModal,
+    showPayModal,
+    showStaffModal,
+    showBroadcastModal,
+    showUserEditModal,
+    showSuspendModal,
+    viewingProd,
+    viewingOrder,
+  ]);
 
   const openNewCategory = () => {
     setEditingCat(null);
@@ -506,6 +550,7 @@ export function AdminDashboardPage() {
         role: 'admin',
         currentAdminPassword: '',
       });
+      setShowStaffModal(false);
       setMsg(`${roleLabel} account created`);
       setTab('users');
       await fetchAll();
@@ -562,13 +607,94 @@ export function AdminDashboardPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
+    { key: 'stats', label: 'Statistics' },
     { key: 'products', label: 'Products' },
     { key: 'categories', label: 'Categories' },
     { key: 'orders', label: 'Orders' },
     { key: 'users', label: 'Users' },
+    { key: 'reviews', label: 'Reviews' },
     { key: 'settings', label: 'Settings' },
     { key: 'profile', label: 'Profile' },
   ];
+
+  const orderPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
+  const pagedOrders = filteredOrders.slice((ordersPage - 1) * pageSize, ordersPage * pageSize);
+
+  const loadAdminReviews = async () => {
+    try {
+      const res = await axios.get('/api/reviews', { headers: authHeaders() });
+      setAdminReviews(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      setAdminReviews([]);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 'reviews') loadAdminReviews();
+  }, [tab]);
+
+  const saveUserEdit = async () => {
+    if (!editingUser) return;
+    try {
+      await axios.put(
+        `/api/auth/users/${editingUser.id}`,
+        { fullName: editingUser.fullName, email: editingUser.email },
+        { headers: authHeaders() },
+      );
+      setShowUserEditModal(false);
+      setEditingUser(null);
+      setMsg('User updated');
+      await fetchAll();
+    } catch (e: any) {
+      setMsg(e?.response?.data?.message || 'Could not update user');
+    }
+  };
+
+  const confirmSuspend = async (suspended: boolean) => {
+    if (!editingUser) return;
+    try {
+      const res = await axios.post(
+        `/api/auth/users/${editingUser.id}/suspend`,
+        { suspended, message: suspendMessage },
+        { headers: authHeaders() },
+      );
+      setShowSuspendModal(false);
+      setEditingUser(null);
+      setSuspendMessage('');
+      setMsg(
+        suspended
+          ? `User suspended${res.data?.emailSent ? ' — email sent' : ' — email not sent (check Brevo)'}`
+          : 'User reinstated',
+      );
+      await fetchAll();
+    } catch (e: any) {
+      setMsg(e?.response?.data?.message || 'Could not update suspension');
+    }
+  };
+
+  const deleteUser = async (u: UserRow) => {
+    if (!confirm(`Delete ${u.email}? This cannot be undone.`)) return;
+    try {
+      await axios.delete(`/api/auth/users/${u.id}`, { headers: authHeaders() });
+      setMsg('User deleted');
+      await fetchAll();
+    } catch (e: any) {
+      setMsg(e?.response?.data?.message || 'Could not delete user');
+    }
+  };
+
+  const sendBroadcast = async () => {
+    setStaffSaving(true);
+    try {
+      const res = await axios.post('/api/auth/broadcast-email', broadcastForm, { headers: authHeaders() });
+      setShowBroadcastModal(false);
+      setBroadcastForm({ subject: '', body: '', audience: 'all' });
+      setMsg(`Broadcast sent to ${res.data?.sent || 0} users${res.data?.failed ? ` (${res.data.failed} failed)` : ''}`);
+    } catch (e: any) {
+      setMsg(e?.response?.data?.message || 'Broadcast failed — check Brevo API key');
+    }
+    setStaffSaving(false);
+  };
 
   const gallery = prodForm.imageUrls?.length
     ? prodForm.imageUrls
@@ -729,12 +855,18 @@ export function AdminDashboardPage() {
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-bold">Quick actions</h3>
                   </div>
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <button type="button" onClick={openNewProduct} className={btnPrimary}>
                       Add product
                     </button>
                     <button type="button" onClick={() => setTab('categories')} className={btnGhost}>
                       Manage categories
+                    </button>
+                    <button type="button" onClick={() => setTab('stats')} className={btnGhost}>
+                      Statistics
+                    </button>
+                    <button type="button" onClick={() => setShowPayModal(true)} className={btnGhost}>
+                      Payment details
                     </button>
                   </div>
                   {categories.length === 0 && (
@@ -1054,7 +1186,10 @@ export function AdminDashboardPage() {
                     <button
                       key={key}
                       type="button"
-                      onClick={() => setOrderFilter(key)}
+                      onClick={() => {
+                        setOrderFilter(key);
+                        setOrdersPage(1);
+                      }}
                       className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${
                         orderFilter === key
                           ? 'bg-black text-white'
@@ -1068,7 +1203,7 @@ export function AdminDashboardPage() {
               </div>
 
               <div className="space-y-3">
-                {filteredOrders.map((o) => {
+                {pagedOrders.map((o) => {
                   const qty = o.quantity || 1;
                   const unit = o.products?.price ?? 0;
                   const total = unit * qty;
@@ -1208,6 +1343,30 @@ export function AdminDashboardPage() {
                   </div>
                 )}
               </div>
+
+              {filteredOrders.length > 0 && (
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    disabled={ordersPage === 1}
+                    onClick={() => setOrdersPage((p) => Math.max(1, p - 1))}
+                    className={btnGhost}
+                  >
+                    Prev
+                  </button>
+                  <span className="text-xs text-neutral-500">
+                    Page {ordersPage} / {orderPages} · {filteredOrders.length} orders
+                  </span>
+                  <button
+                    type="button"
+                    disabled={ordersPage >= orderPages}
+                    onClick={() => setOrdersPage((p) => p + 1)}
+                    className={btnGhost}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1258,21 +1417,34 @@ export function AdminDashboardPage() {
 
               {storedUser?.role === 'admin' && (
                 <div className={`${cardClass} flex flex-wrap items-center justify-between gap-3 p-4`}>
-                  <p className="text-sm text-neutral-600">Need another admin or manager?</p>
-                  <button type="button" className={btnPrimary} onClick={() => setTab('settings')}>
-                    Add staff in Settings →
-                  </button>
+                  <p className="text-sm text-neutral-600">Invite staff or email all customers.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" className={btnGhost} onClick={() => setShowBroadcastModal(true)}>
+                      Broadcast email
+                    </button>
+                    <button
+                      type="button"
+                      className={btnPrimary}
+                      onClick={() => {
+                        setShowStaffModal(true);
+                        setMsg('');
+                      }}
+                    >
+                      Add admin
+                    </button>
+                  </div>
                 </div>
               )}
 
               <div className={`${cardClass} overflow-hidden`}>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[720px] text-sm">
+                  <table className="w-full min-w-[820px] text-sm">
                     <thead>
                       <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
                         <th className="px-4 py-3">User</th>
                         <th className="px-4 py-3">Email</th>
                         <th className="px-4 py-3">Role</th>
+                        <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Orders</th>
                         <th className="px-4 py-3 text-right">Manage</th>
                       </tr>
@@ -1305,14 +1477,26 @@ export function AdminDashboardPage() {
                               </span>
                             </td>
                             <td className="px-4 py-3">
+                              {u.suspended ? (
+                                <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-bold text-red-700">
+                                  Suspended
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                                  Active
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
                               {orderCount > 0 ? (
                                 <button
                                   type="button"
                                   className="text-sm font-semibold text-black underline-offset-2 hover:underline"
                                   onClick={() => {
                                     setOrderFilter('all');
+                                    setOrdersPage(1);
                                     setTab('orders');
-                                    setMsg(`Showing all orders — filter by ${u.email} in notes/email`);
+                                    setMsg(`Showing all orders — look for ${u.email}`);
                                   }}
                                 >
                                   {orderCount} order{orderCount === 1 ? '' : 's'}
@@ -1323,7 +1507,7 @@ export function AdminDashboardPage() {
                             </td>
                             <td className="px-4 py-3 text-right">
                               {storedUser?.role === 'admin' ? (
-                                <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                                <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
                                   <select
                                     className={`${inputClass} !w-auto !py-1.5 text-xs`}
                                     value={u.role}
@@ -1334,8 +1518,42 @@ export function AdminDashboardPage() {
                                     <option value="manager">Manager</option>
                                     <option value="admin">Admin</option>
                                   </select>
+                                  <button
+                                    type="button"
+                                    className={btnGhost}
+                                    onClick={() => {
+                                      setEditingUser(u);
+                                      setShowUserEditModal(true);
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={btnGhost}
+                                    disabled={u.id === storedUser.id}
+                                    onClick={() => {
+                                      setEditingUser(u);
+                                      setSuspendMessage(
+                                        u.suspended
+                                          ? ''
+                                          : 'Your account was suspended for violating our shop policies. Contact support if you believe this is a mistake.',
+                                      );
+                                      setShowSuspendModal(true);
+                                    }}
+                                  >
+                                    {u.suspended ? 'Reinstate' : 'Suspend'}
+                                  </button>
                                   <button type="button" onClick={() => resetPassword(u.id)} className={btnGhost}>
                                     Reset pwd
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={u.id === storedUser.id}
+                                    onClick={() => deleteUser(u)}
+                                    className="rounded-full px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40"
+                                  >
+                                    Delete
                                   </button>
                                 </div>
                               ) : (
@@ -1347,7 +1565,7 @@ export function AdminDashboardPage() {
                       })}
                       {filteredUsers.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="px-4 py-12 text-center text-neutral-400">
+                          <td colSpan={6} className="px-4 py-12 text-center text-neutral-400">
                             No users in this filter.
                           </td>
                         </tr>
@@ -1375,145 +1593,175 @@ export function AdminDashboardPage() {
             </div>
           )}
 
-          {/* Settings */}
-          {tab === 'settings' && (
-            <div className="mx-auto max-w-3xl space-y-4">
-              {storedUser?.role === 'admin' && (
-                <div className={`${cardClass} p-5 sm:p-6`}>
-                  <h3 className="text-base font-bold">Add admin or manager</h3>
-                  <p className="mt-1 text-sm text-neutral-500">
-                    Create another staff account. You must confirm with your current admin password.
-                  </p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <label className={labelClass}>Full name</label>
-                      <input
-                        className={inputClass}
-                        placeholder="New staff name"
-                        value={staffForm.fullName}
-                        onChange={(e) => setStaffForm({ ...staffForm, fullName: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Email *</label>
-                      <input
-                        className={inputClass}
-                        type="email"
-                        placeholder="admin2@example.com"
-                        value={staffForm.email}
-                        onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Role *</label>
-                      <select
-                        className={inputClass}
-                        value={staffForm.role}
-                        onChange={(e) =>
-                          setStaffForm({ ...staffForm, role: e.target.value as 'admin' | 'manager' })
-                        }
-                      >
-                        <option value="admin">Admin (full access)</option>
-                        <option value="manager">Manager (catalog & orders)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelClass}>New password * (min 8)</label>
-                      <input
-                        className={inputClass}
-                        type="password"
-                        autoComplete="new-password"
-                        value={staffForm.password}
-                        onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Your admin password *</label>
-                      <input
-                        className={inputClass}
-                        type="password"
-                        autoComplete="current-password"
-                        placeholder="Confirm it is you"
-                        value={staffForm.currentAdminPassword}
-                        onChange={(e) =>
-                          setStaffForm({ ...staffForm, currentAdminPassword: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`${btnPrimary} mt-4`}
-                    disabled={staffSaving}
-                    onClick={createStaff}
-                  >
-                    {staffSaving ? 'Creating…' : 'Create staff account'}
-                  </button>
-                </div>
-              )}
-
-              <div className={`${cardClass} p-5 sm:p-6`}>
-                <h3 className="text-base font-bold">Payment details for customers</h3>
-                <p className="mt-1 text-sm text-neutral-500">
-                  Shown at checkout: bank transfer, mobile money, and PayPal. Customers pay, then submit proof for your approval.
+          {/* Statistics */}
+          {tab === 'stats' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-base font-bold">Store analytics</h3>
+                <p className="text-sm text-neutral-500">
+                  Revenue, order status mix, popular products by likes & reviews.
                 </p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className={labelClass}>Bank name</label>
-                    <input className={inputClass} value={paySettings.bankName} onChange={(e) => setPaySettings({ ...paySettings, bankName: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Account name</label>
-                    <input className={inputClass} value={paySettings.bankAccountName} onChange={(e) => setPaySettings({ ...paySettings, bankAccountName: e.target.value })} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={labelClass}>Bank account number</label>
-                    <input className={inputClass} value={paySettings.bankAccount} onChange={(e) => setPaySettings({ ...paySettings, bankAccount: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Mobile money name</label>
-                    <input className={inputClass} value={paySettings.mobileName} onChange={(e) => setPaySettings({ ...paySettings, mobileName: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Mobile money number</label>
-                    <input className={inputClass} value={paySettings.mobileNumber} onChange={(e) => setPaySettings({ ...paySettings, mobileNumber: e.target.value })} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={labelClass}>PayPal email</label>
-                    <input type="email" className={inputClass} value={paySettings.paypalEmail} onChange={(e) => setPaySettings({ ...paySettings, paypalEmail: e.target.value })} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={labelClass}>Support phone / WhatsApp</label>
-                    <input className={inputClass} value={paySettings.supportPhone} onChange={(e) => setPaySettings({ ...paySettings, supportPhone: e.target.value })} placeholder="+1..." />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={labelClass}>Checkout instructions</label>
-                    <textarea
-                      className={`${inputClass} min-h-[80px]`}
-                      value={paySettings.instructions}
-                      onChange={(e) => setPaySettings({ ...paySettings, instructions: e.target.value })}
-                    />
-                  </div>
+              </div>
+              <AdminStatsPanel />
+            </div>
+          )}
+
+          {/* Reviews moderation */}
+          {tab === 'reviews' && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold">Product reviews</h3>
+                  <p className="text-sm text-neutral-500">
+                    Moderate customer reviews shown on product pages.
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  className={`${btnPrimary} mt-4`}
-                  disabled={loading}
-                  onClick={async () => {
-                    setLoading(true);
-                    setMsg('');
-                    try {
-                      await axios.put('/api/settings/payment', paySettings, { headers: authHeaders() });
-                      setMsg('Payment settings saved');
-                    } catch (e: any) {
-                      setMsg(e?.response?.data?.message || 'Could not save payment settings');
-                    }
-                    setLoading(false);
-                  }}
-                >
-                  Save payment details
+                <button type="button" className={btnGhost} onClick={loadAdminReviews}>
+                  Refresh
                 </button>
               </div>
+              <div className="space-y-3">
+                {adminReviews.map((r) => (
+                  <article key={r.id} className={`${cardClass} p-4 sm:p-5`}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-neutral-400">
+                          {r.products?.name || 'Product'} · {r.user_name || 'Customer'}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-amber-600">
+                          {'★'.repeat(r.rating)}
+                          <span className="text-neutral-300">{'★'.repeat(5 - r.rating)}</span>
+                        </p>
+                        <p className="mt-2 text-sm text-neutral-700">{r.body}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                            r.is_visible === false
+                              ? 'bg-neutral-100 text-neutral-500'
+                              : 'bg-emerald-50 text-emerald-700'
+                          }`}
+                        >
+                          {r.is_visible === false ? 'Hidden' : 'Visible'}
+                        </span>
+                        <button
+                          type="button"
+                          className={btnGhost}
+                          onClick={async () => {
+                            try {
+                              await axios.put(
+                                `/api/reviews/${r.id}/visibility`,
+                                { is_visible: r.is_visible === false },
+                                { headers: authHeaders() },
+                              );
+                              await loadAdminReviews();
+                              setMsg(r.is_visible === false ? 'Review shown' : 'Review hidden');
+                            } catch (e: any) {
+                              setMsg(e?.response?.data?.message || 'Could not update review');
+                            }
+                          }}
+                        >
+                          {r.is_visible === false ? 'Show' : 'Hide'}
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-full px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                          onClick={async () => {
+                            if (!confirm('Delete this review?')) return;
+                            try {
+                              await axios.delete(`/api/reviews/${r.id}`, { headers: authHeaders() });
+                              await loadAdminReviews();
+                              setMsg('Review deleted');
+                            } catch (e: any) {
+                              setMsg(e?.response?.data?.message || 'Could not delete review');
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+                {adminReviews.length === 0 && (
+                  <div className={`${cardClass} py-16 text-center text-neutral-400`}>
+                    No reviews yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Settings — entry cards open popup forms */}
+          {tab === 'settings' && (
+            <div className="mx-auto max-w-3xl space-y-4">
+              <div>
+                <h3 className="text-base font-bold">Settings</h3>
+                <p className="text-sm text-neutral-500">Open a form to edit payment details or add staff.</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPayModal(true);
+                    setMsg('');
+                  }}
+                  className={`${cardClass} p-5 text-left transition hover:border-black sm:p-6`}
+                >
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Checkout</p>
+                  <h4 className="mt-2 text-base font-bold">Payment details for customers</h4>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-500">
+                    Shown at checkout: bank transfer, mobile money, and PayPal. Customers pay, then submit proof for
+                    your approval.
+                  </p>
+                  <span className="mt-4 inline-flex text-sm font-semibold text-black underline-offset-2">
+                    Open form →
+                  </span>
+                </button>
+
+                {storedUser?.role === 'admin' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowStaffModal(true);
+                      setMsg('');
+                    }}
+                    className={`${cardClass} p-5 text-left transition hover:border-black sm:p-6`}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Team</p>
+                    <h4 className="mt-2 text-base font-bold">Add admin or manager</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-neutral-500">
+                      Create another staff account. Confirm with your current admin password.
+                    </p>
+                    <span className="mt-4 inline-flex text-sm font-semibold text-black underline-offset-2">
+                      Open form →
+                    </span>
+                  </button>
+                ) : (
+                  <div className={`${cardClass} p-5 sm:p-6`}>
+                    <h4 className="text-base font-bold">Staff accounts</h4>
+                    <p className="mt-2 text-sm text-neutral-500">Only full admins can add staff.</p>
+                  </div>
+                )}
+              </div>
+
+              {storedUser?.role === 'admin' && (
+                <button
+                  type="button"
+                  onClick={() => setShowBroadcastModal(true)}
+                  className={`${cardClass} w-full p-5 text-left transition hover:border-black sm:p-6`}
+                >
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Marketing</p>
+                  <h4 className="mt-2 text-base font-bold">Broadcast email</h4>
+                  <p className="mt-2 text-sm text-neutral-500">
+                    Send a promotional message to all customers, staff, or everyone at once.
+                  </p>
+                  <span className="mt-4 inline-flex text-sm font-semibold text-black underline-offset-2">
+                    Compose email →
+                  </span>
+                </button>
+              )}
 
               <div className={`${cardClass} p-5 sm:p-6`}>
                 <h3 className="text-base font-bold">Hero video</h3>
@@ -2035,6 +2283,402 @@ export function AdminDashboardPage() {
               )}
               <button type="button" className={btnGhost} onClick={() => setViewingOrder(null)}>
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment settings modal */}
+      {showPayModal && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close"
+            onClick={() => setShowPayModal(false)}
+          />
+          <div className="relative flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 sm:px-5">
+              <div>
+                <h2 className="text-base font-bold">Payment details for customers</h2>
+                <p className="text-xs text-neutral-500">Bank, mobile money & PayPal shown at checkout</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPayModal(false)}
+                className="h-9 w-9 rounded-full hover:bg-neutral-100"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Bank name</label>
+                  <input
+                    className={inputClass}
+                    value={paySettings.bankName}
+                    onChange={(e) => setPaySettings({ ...paySettings, bankName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Account name</label>
+                  <input
+                    className={inputClass}
+                    value={paySettings.bankAccountName}
+                    onChange={(e) => setPaySettings({ ...paySettings, bankAccountName: e.target.value })}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>Bank account number</label>
+                  <input
+                    className={inputClass}
+                    value={paySettings.bankAccount}
+                    onChange={(e) => setPaySettings({ ...paySettings, bankAccount: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Mobile money name</label>
+                  <input
+                    className={inputClass}
+                    value={paySettings.mobileName}
+                    onChange={(e) => setPaySettings({ ...paySettings, mobileName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Mobile money number</label>
+                  <input
+                    className={inputClass}
+                    value={paySettings.mobileNumber}
+                    onChange={(e) => setPaySettings({ ...paySettings, mobileNumber: e.target.value })}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>PayPal email</label>
+                  <input
+                    type="email"
+                    className={inputClass}
+                    value={paySettings.paypalEmail}
+                    onChange={(e) => setPaySettings({ ...paySettings, paypalEmail: e.target.value })}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>Support phone / WhatsApp</label>
+                  <input
+                    className={inputClass}
+                    value={paySettings.supportPhone}
+                    onChange={(e) => setPaySettings({ ...paySettings, supportPhone: e.target.value })}
+                    placeholder="+1..."
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>Checkout instructions</label>
+                  <textarea
+                    className={`${inputClass} min-h-[80px]`}
+                    value={paySettings.instructions}
+                    onChange={(e) => setPaySettings({ ...paySettings, instructions: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 border-t border-neutral-200 px-4 py-3 sm:px-5">
+              <button type="button" className={btnGhost} onClick={() => setShowPayModal(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${btnPrimary} ml-auto`}
+                disabled={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  setMsg('');
+                  try {
+                    await axios.put('/api/settings/payment', paySettings, { headers: authHeaders() });
+                    setShowPayModal(false);
+                    setMsg('Payment settings saved');
+                  } catch (e: any) {
+                    setMsg(e?.response?.data?.message || 'Could not save payment settings');
+                  }
+                  setLoading(false);
+                }}
+              >
+                {loading ? 'Saving…' : 'Save payment details'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add staff modal */}
+      {showStaffModal && storedUser?.role === 'admin' && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close"
+            onClick={() => setShowStaffModal(false)}
+          />
+          <div className="relative flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 sm:px-5">
+              <h2 className="text-base font-bold">Add admin or manager</h2>
+              <button
+                type="button"
+                onClick={() => setShowStaffModal(false)}
+                className="h-9 w-9 rounded-full hover:bg-neutral-100"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+              <p className="text-sm text-neutral-500">
+                Create another staff account. Confirm with your current admin password.
+              </p>
+              <div>
+                <label className={labelClass}>Full name</label>
+                <input
+                  className={inputClass}
+                  placeholder="New staff name"
+                  value={staffForm.fullName}
+                  onChange={(e) => setStaffForm({ ...staffForm, fullName: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Email *</label>
+                <input
+                  className={inputClass}
+                  type="email"
+                  placeholder="admin2@example.com"
+                  value={staffForm.email}
+                  onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Role *</label>
+                <select
+                  className={inputClass}
+                  value={staffForm.role}
+                  onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value as 'admin' | 'manager' })}
+                >
+                  <option value="admin">Admin (full access)</option>
+                  <option value="manager">Manager (catalog & orders)</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>New password * (min 8)</label>
+                <input
+                  className={inputClass}
+                  type="password"
+                  autoComplete="new-password"
+                  value={staffForm.password}
+                  onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Your admin password *</label>
+                <input
+                  className={inputClass}
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Confirm it is you"
+                  value={staffForm.currentAdminPassword}
+                  onChange={(e) => setStaffForm({ ...staffForm, currentAdminPassword: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 border-t border-neutral-200 px-4 py-3 sm:px-5">
+              <button type="button" className={btnGhost} onClick={() => setShowStaffModal(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${btnPrimary} ml-auto`}
+                disabled={staffSaving}
+                onClick={createStaff}
+              >
+                {staffSaving ? 'Creating…' : 'Create staff account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit user modal */}
+      {showUserEditModal && editingUser && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close"
+            onClick={() => {
+              setShowUserEditModal(false);
+              setEditingUser(null);
+            }}
+          />
+          <div className="relative w-full max-w-md overflow-hidden rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6">
+            <h2 className="text-base font-bold">Edit user</h2>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className={labelClass}>Full name</label>
+                <input
+                  className={inputClass}
+                  value={editingUser.fullName}
+                  onChange={(e) => setEditingUser({ ...editingUser, fullName: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Email</label>
+                <input
+                  className={inputClass}
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                className={btnGhost}
+                onClick={() => {
+                  setShowUserEditModal(false);
+                  setEditingUser(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button type="button" className={`${btnPrimary} ml-auto`} onClick={saveUserEdit}>
+                Save changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suspend / reinstate modal with email message */}
+      {showSuspendModal && editingUser && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close"
+            onClick={() => {
+              setShowSuspendModal(false);
+              setEditingUser(null);
+              setSuspendMessage('');
+            }}
+          />
+          <div className="relative w-full max-w-md overflow-hidden rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6">
+            <h2 className="text-base font-bold">
+              {editingUser.suspended ? 'Reinstate user' : 'Suspend user'}
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              {editingUser.email} will receive this message by email.
+            </p>
+            <textarea
+              className={`${inputClass} mt-4 min-h-[120px]`}
+              placeholder="Message included in the email…"
+              value={suspendMessage}
+              onChange={(e) => setSuspendMessage(e.target.value)}
+            />
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                className={btnGhost}
+                onClick={() => {
+                  setShowSuspendModal(false);
+                  setEditingUser(null);
+                  setSuspendMessage('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${btnPrimary} ml-auto ${editingUser.suspended ? '' : '!bg-red-600 hover:!bg-red-700'}`}
+                onClick={() => confirmSuspend(!editingUser.suspended)}
+              >
+                {editingUser.suspended ? 'Reinstate & email' : 'Suspend & email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Broadcast email modal */}
+      {showBroadcastModal && storedUser?.role === 'admin' && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close"
+            onClick={() => setShowBroadcastModal(false)}
+          />
+          <div className="relative flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 sm:px-5">
+              <h2 className="text-base font-bold">Broadcast email</h2>
+              <button
+                type="button"
+                onClick={() => setShowBroadcastModal(false)}
+                className="h-9 w-9 rounded-full hover:bg-neutral-100"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+              <p className="text-sm text-neutral-500">
+                Advertise a sale, new drop, or announcement. Sent via Brevo to matching accounts.
+              </p>
+              <div>
+                <label className={labelClass}>Audience</label>
+                <select
+                  className={inputClass}
+                  value={broadcastForm.audience}
+                  onChange={(e) =>
+                    setBroadcastForm({
+                      ...broadcastForm,
+                      audience: e.target.value as 'all' | 'customers' | 'staff',
+                    })
+                  }
+                >
+                  <option value="all">Everyone</option>
+                  <option value="customers">Customers only</option>
+                  <option value="staff">Staff only</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Subject *</label>
+                <input
+                  className={inputClass}
+                  placeholder="New AFROLUXO collection is live"
+                  value={broadcastForm.subject}
+                  onChange={(e) => setBroadcastForm({ ...broadcastForm, subject: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Message *</label>
+                <textarea
+                  className={`${inputClass} min-h-[140px]`}
+                  placeholder="Write your promotion…"
+                  value={broadcastForm.body}
+                  onChange={(e) => setBroadcastForm({ ...broadcastForm, body: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 border-t border-neutral-200 px-4 py-3 sm:px-5">
+              <button type="button" className={btnGhost} onClick={() => setShowBroadcastModal(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${btnPrimary} ml-auto`}
+                disabled={staffSaving || !broadcastForm.subject.trim() || !broadcastForm.body.trim()}
+                onClick={sendBroadcast}
+              >
+                {staffSaving ? 'Sending…' : 'Send broadcast'}
               </button>
             </div>
           </div>

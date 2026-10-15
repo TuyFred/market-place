@@ -40,6 +40,51 @@ export async function sendBrevoEmail({ to, subject, html, text }) {
   return res.json().catch(() => ({}));
 }
 
+export function suspendNoticeEmailHtml({ name, suspended, message }) {
+  const safeName = name || 'there';
+  const title = suspended ? 'Account suspended' : 'Account reinstated';
+  const lead = suspended
+    ? 'Your AFROLUXO account has been suspended by an administrator.'
+    : 'Good news — your AFROLUXO account access has been restored.';
+  const note = message
+    ? `<p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#3f3f46;"><strong>Message from admin:</strong><br/>${String(message)
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')}</p>`
+    : '';
+  return `
+<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;"><tr><td align="center">
+<table width="100%" style="max-width:520px;background:#fff;border-radius:16px;padding:32px;border:1px solid #e4e4e7;">
+<tr><td>
+<p style="margin:0 0 8px;font-size:12px;letter-spacing:0.2em;color:#71717a;font-weight:700;">AFROLUXO BY ASI</p>
+<h1 style="margin:0 0 16px;font-size:22px;color:#09090b;">${title}</h1>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#3f3f46;">Hi ${safeName},</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#3f3f46;">${lead}</p>
+${note}
+<p style="margin:0;font-size:12px;color:#a1a1aa;">If you have questions, reply to this email or contact support on WhatsApp.</p>
+</td></tr></table></td></tr></table></body></html>`;
+}
+
+export function broadcastEmailHtml({ name, subject, body }) {
+  const safeName = name || 'there';
+  const safeBody = String(body || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br/>');
+  return `
+<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;"><tr><td align="center">
+<table width="100%" style="max-width:520px;background:#fff;border-radius:16px;padding:32px;border:1px solid #e4e4e7;">
+<tr><td>
+<p style="margin:0 0 8px;font-size:12px;letter-spacing:0.2em;color:#71717a;font-weight:700;">AFROLUXO BY ASI</p>
+<h1 style="margin:0 0 16px;font-size:22px;color:#09090b;">${String(subject || '').replace(/</g, '')}</h1>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#3f3f46;">Hi ${safeName},</p>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3f3f46;">${safeBody}</p>
+<p style="margin:0;font-size:12px;color:#a1a1aa;">You received this because you have an AFROLUXO account.</p>
+</td></tr></table></td></tr></table></body></html>`;
+}
+
 export function passwordResetEmailHtml({ name, resetUrl }) {
   const safeName = name || 'there';
   return `
