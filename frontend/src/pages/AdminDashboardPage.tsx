@@ -80,7 +80,75 @@ const cardClass = 'rounded-2xl border border-neutral-200 bg-white shadow-sm';
 const btnPrimary =
   'inline-flex items-center justify-center gap-2 rounded-full bg-black px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-neutral-800 disabled:opacity-50';
 const btnGhost =
-  'inline-flex items-center justify-center rounded-full border border-neutral-200 px-4 py-2.5 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50';
+  'inline-flex items-center justify-center gap-1.5 rounded-full border border-neutral-200 px-4 py-2.5 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50';
+
+const iconBtnBase =
+  'inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent transition disabled:pointer-events-none disabled:opacity-35';
+
+function IconPencil({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.1 2.1 0 113.0 2.95L8.25 18.05 4.5 19.5l1.45-3.75L16.862 3.487z" />
+    </svg>
+  );
+}
+function IconKey({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3.75 3.75 0 11-1.35 7.27L8.25 18.75H5.25v-3l6.13-6.15A3.74 3.74 0 0115.75 5.25z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 8.25h.008v.008H16.5V8.25z" />
+    </svg>
+  );
+}
+function IconBan({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+    </svg>
+  );
+}
+function IconCheckCircle({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+function IconTrash({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673A2.25 2.25 0 0115.916 21.75H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0V4.375c0-.621-.504-1.125-1.125-1.125h-4.5c-.621 0-1.125.504-1.125 1.125V5.25m7.5 0h-7.5" />
+    </svg>
+  );
+}
+function IconMail({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+    </svg>
+  );
+}
+function IconUserPlus({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+    </svg>
+  );
+}
+function IconBag({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+    </svg>
+  );
+}
+function IconShield({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+    </svg>
+  );
+}
 
 const statusColors: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -1420,7 +1488,8 @@ export function AdminDashboardPage() {
                   <p className="text-sm text-neutral-600">Invite staff or email all customers.</p>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" className={btnGhost} onClick={() => setShowBroadcastModal(true)}>
-                      Broadcast email
+                      <IconMail className="h-3.5 w-3.5" />
+                      Broadcast
                     </button>
                     <button
                       type="button"
@@ -1430,6 +1499,7 @@ export function AdminDashboardPage() {
                         setMsg('');
                       }}
                     >
+                      <IconUserPlus className="h-3.5 w-3.5" />
                       Add admin
                     </button>
                   </div>
@@ -1438,60 +1508,117 @@ export function AdminDashboardPage() {
 
               <div className={`${cardClass} overflow-hidden`}>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[820px] text-sm">
+                  <table className="w-full min-w-[760px] border-collapse text-sm">
                     <thead>
-                      <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
-                        <th className="px-4 py-3">User</th>
-                        <th className="px-4 py-3">Email</th>
-                        <th className="px-4 py-3">Role</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Orders</th>
-                        <th className="px-4 py-3 text-right">Manage</th>
+                      <tr className="border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-white text-left">
+                        <th className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+                          User
+                        </th>
+                        <th className="px-4 py-3.5 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+                          Role
+                        </th>
+                        <th className="px-4 py-3.5 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+                          Status
+                        </th>
+                        <th className="px-4 py-3.5 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+                          Orders
+                        </th>
+                        <th className="px-5 py-3.5 text-right text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredUsers.slice((usersPage - 1) * pageSize, usersPage * pageSize).map((u) => {
                         const orderCount = userOrderCounts[(u.email || '').toLowerCase()] || 0;
+                        const isSelf = u.id === storedUser?.id;
                         return (
-                          <tr key={u.id} className="border-b border-neutral-100 hover:bg-neutral-50/80">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold">
+                          <tr
+                            key={u.id}
+                            className="group border-b border-neutral-100 transition hover:bg-neutral-50/90"
+                          >
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                                    u.role === 'admin'
+                                      ? 'bg-black text-white'
+                                      : u.role === 'manager'
+                                        ? 'bg-violet-100 text-violet-800'
+                                        : 'bg-neutral-100 text-neutral-700'
+                                  }`}
+                                >
                                   {(u.fullName || u.email).charAt(0).toUpperCase()}
+                                  <span
+                                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${
+                                      u.suspended ? 'bg-red-500' : 'bg-emerald-500'
+                                    }`}
+                                    title={u.suspended ? 'Suspended' : 'Active'}
+                                  />
                                 </span>
-                                <span className="font-semibold">{u.fullName || '—'}</span>
+                                <div className="min-w-0">
+                                  <p className="truncate font-semibold text-black">{u.fullName || '—'}</p>
+                                  <p className="truncate text-xs text-neutral-500">{u.email}</p>
+                                </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-neutral-600">{u.email}</td>
-                            <td className="px-4 py-3">
-                              <span
-                                className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize ${
-                                  u.role === 'admin'
-                                    ? 'bg-black text-white'
-                                    : u.role === 'manager'
-                                      ? 'bg-violet-100 text-violet-800'
-                                      : 'bg-neutral-100 text-neutral-700'
-                                }`}
-                              >
-                                {u.role}
-                              </span>
+                            <td className="px-4 py-3.5">
+                              {storedUser?.role === 'admin' ? (
+                                <div className="relative inline-flex items-center">
+                                  <span className="pointer-events-none absolute left-2.5 text-neutral-400">
+                                    {u.role === 'admin' ? (
+                                      <IconShield className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <IconBag className="h-3.5 w-3.5" />
+                                    )}
+                                  </span>
+                                  <select
+                                    className="appearance-none rounded-xl border border-neutral-200 bg-white py-2 pl-8 pr-8 text-xs font-semibold capitalize text-neutral-800 shadow-sm transition hover:border-neutral-300 focus:border-black focus:outline-none focus:ring-1 focus:ring-black disabled:opacity-50"
+                                    value={u.role}
+                                    disabled={isSelf}
+                                    title="Change role"
+                                    aria-label={`Role for ${u.email}`}
+                                    onChange={(e) => changeRole(u.id, e.target.value)}
+                                  >
+                                    <option value="customer">Customer</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="admin">Admin</option>
+                                  </select>
+                                </div>
+                              ) : (
+                                <span
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold capitalize ${
+                                    u.role === 'admin'
+                                      ? 'bg-black text-white'
+                                      : u.role === 'manager'
+                                        ? 'bg-violet-100 text-violet-800'
+                                        : 'bg-neutral-100 text-neutral-700'
+                                  }`}
+                                >
+                                  {u.role === 'admin' ? <IconShield className="h-3 w-3" /> : <IconBag className="h-3 w-3" />}
+                                  {u.role}
+                                </span>
+                              )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3.5">
                               {u.suspended ? (
-                                <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-bold text-red-700">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 ring-1 ring-inset ring-red-100">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                                   Suspended
                                 </span>
                               ) : (
-                                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-100">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                                   Active
                                 </span>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3.5">
                               {orderCount > 0 ? (
                                 <button
                                   type="button"
-                                  className="text-sm font-semibold text-black underline-offset-2 hover:underline"
+                                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-black transition hover:bg-neutral-100"
+                                  title="View orders"
                                   onClick={() => {
                                     setOrderFilter('all');
                                     setOrdersPage(1);
@@ -1499,39 +1626,49 @@ export function AdminDashboardPage() {
                                     setMsg(`Showing all orders — look for ${u.email}`);
                                   }}
                                 >
-                                  {orderCount} order{orderCount === 1 ? '' : 's'}
+                                  <span className="tabular-nums">{orderCount}</span>
+                                  <span className="text-xs font-medium text-neutral-400">
+                                    order{orderCount === 1 ? '' : 's'}
+                                  </span>
                                 </button>
                               ) : (
-                                <span className="text-neutral-400">0</span>
+                                <span className="text-sm text-neutral-300">—</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-right">
+                            <td className="px-5 py-3.5">
                               {storedUser?.role === 'admin' ? (
-                                <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
-                                  <select
-                                    className={`${inputClass} !w-auto !py-1.5 text-xs`}
-                                    value={u.role}
-                                    disabled={u.id === storedUser.id}
-                                    onChange={(e) => changeRole(u.id, e.target.value)}
-                                  >
-                                    <option value="customer">Customer</option>
-                                    <option value="manager">Manager</option>
-                                    <option value="admin">Admin</option>
-                                  </select>
+                                <div className="flex items-center justify-end gap-1">
                                   <button
                                     type="button"
-                                    className={btnGhost}
+                                    title="Edit user"
+                                    aria-label="Edit user"
+                                    className={`${iconBtnBase} text-neutral-600 hover:border-neutral-200 hover:bg-white hover:text-black hover:shadow-sm`}
                                     onClick={() => {
                                       setEditingUser(u);
                                       setShowUserEditModal(true);
                                     }}
                                   >
-                                    Edit
+                                    <IconPencil />
                                   </button>
                                   <button
                                     type="button"
-                                    className={btnGhost}
-                                    disabled={u.id === storedUser.id}
+                                    title="Reset password"
+                                    aria-label="Reset password"
+                                    className={`${iconBtnBase} text-neutral-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800`}
+                                    onClick={() => resetPassword(u.id)}
+                                  >
+                                    <IconKey />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    title={u.suspended ? 'Reinstate user' : 'Suspend user'}
+                                    aria-label={u.suspended ? 'Reinstate user' : 'Suspend user'}
+                                    disabled={isSelf}
+                                    className={`${iconBtnBase} ${
+                                      u.suspended
+                                        ? 'text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50'
+                                        : 'text-orange-700 hover:border-orange-200 hover:bg-orange-50'
+                                    }`}
                                     onClick={() => {
                                       setEditingUser(u);
                                       setSuspendMessage(
@@ -1542,22 +1679,21 @@ export function AdminDashboardPage() {
                                       setShowSuspendModal(true);
                                     }}
                                   >
-                                    {u.suspended ? 'Reinstate' : 'Suspend'}
-                                  </button>
-                                  <button type="button" onClick={() => resetPassword(u.id)} className={btnGhost}>
-                                    Reset pwd
+                                    {u.suspended ? <IconCheckCircle /> : <IconBan />}
                                   </button>
                                   <button
                                     type="button"
-                                    disabled={u.id === storedUser.id}
+                                    title="Delete user"
+                                    aria-label="Delete user"
+                                    disabled={isSelf}
+                                    className={`${iconBtnBase} text-red-600 hover:border-red-200 hover:bg-red-50`}
                                     onClick={() => deleteUser(u)}
-                                    className="rounded-full px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40"
                                   >
-                                    Delete
+                                    <IconTrash />
                                   </button>
                                 </div>
                               ) : (
-                                <span className="text-xs text-neutral-400">Admin only</span>
+                                <span className="block text-right text-xs text-neutral-400">Admin only</span>
                               )}
                             </td>
                           </tr>
@@ -1565,29 +1701,42 @@ export function AdminDashboardPage() {
                       })}
                       {filteredUsers.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="px-4 py-12 text-center text-neutral-400">
-                            No users in this filter.
+                          <td colSpan={5} className="px-5 py-16 text-center">
+                            <div className="mx-auto flex max-w-xs flex-col items-center gap-2 text-neutral-400">
+                              <IconBag className="h-8 w-8 opacity-40" />
+                              <p className="text-sm">No users in this filter.</p>
+                            </div>
                           </td>
                         </tr>
                       )}
                     </tbody>
                   </table>
                 </div>
-                <div className="flex items-center justify-end gap-2 border-t border-neutral-100 px-4 py-3">
-                  <button type="button" disabled={usersPage === 1} onClick={() => setUsersPage((p) => Math.max(1, p - 1))} className={btnGhost}>
-                    Prev
-                  </button>
-                  <span className="text-xs text-neutral-500">
-                    Page {usersPage} / {userPages}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={usersPage >= userPages}
-                    onClick={() => setUsersPage((p) => p + 1)}
-                    className={btnGhost}
-                  >
-                    Next
-                  </button>
+                <div className="flex items-center justify-between gap-2 border-t border-neutral-100 bg-neutral-50/50 px-5 py-3">
+                  <p className="text-xs text-neutral-500">
+                    {filteredUsers.length} user{filteredUsers.length === 1 ? '' : 's'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={usersPage === 1}
+                      onClick={() => setUsersPage((p) => Math.max(1, p - 1))}
+                      className={btnGhost}
+                    >
+                      Prev
+                    </button>
+                    <span className="min-w-[4.5rem] text-center text-xs font-medium text-neutral-600">
+                      {usersPage} / {userPages}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={usersPage >= userPages}
+                      onClick={() => setUsersPage((p) => p + 1)}
+                      className={btnGhost}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
