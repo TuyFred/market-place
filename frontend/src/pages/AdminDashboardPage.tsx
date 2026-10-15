@@ -97,6 +97,7 @@ export function AdminDashboardPage() {
   const [prodForm, setProdForm] = useState<Partial<Product>>({});
   const [editingProd, setEditingProd] = useState<string | null>(null);
   const [showProdModal, setShowProdModal] = useState(false);
+  const [showCatModal, setShowCatModal] = useState(false);
   const [catForm, setCatForm] = useState<{ name: string; slug: string; parent_id: string }>({
     name: '',
     slug: '',
@@ -190,11 +191,38 @@ export function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = showProdModal || viewingProd ? 'hidden' : '';
+    document.body.style.overflow = showProdModal || showCatModal || viewingProd || viewingOrder ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showProdModal, viewingProd]);
+  }, [showProdModal, showCatModal, viewingProd, viewingOrder]);
+
+  const openNewCategory = () => {
+    setEditingCat(null);
+    setCatForm({ name: '', slug: '', parent_id: '' });
+    setSlugManual(false);
+    setShowCatModal(true);
+    setMsg('');
+  };
+
+  const openEditCategory = (c: Category) => {
+    setEditingCat(c.id);
+    setCatForm({
+      name: c.name,
+      slug: c.slug,
+      parent_id: c.parent_id || '',
+    });
+    setSlugManual(true);
+    setShowCatModal(true);
+    setMsg('');
+  };
+
+  const closeCatModal = () => {
+    setShowCatModal(false);
+    setEditingCat(null);
+    setCatForm({ name: '', slug: '', parent_id: '' });
+    setSlugManual(false);
+  };
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
@@ -353,10 +381,9 @@ export function AdminDashboardPage() {
         await axios.post('/api/categories', body, { headers: authHeaders() });
       }
       await fetchAll();
-      setCatForm({ name: '', slug: '', parent_id: '' });
-      setEditingCat(null);
-      setSlugManual(false);
+      closeCatModal();
       setMsg('Category saved');
+      setTab('categories');
     } catch (e: any) {
       setMsg(e?.response?.data?.message || 'Could not save category');
     }
@@ -643,16 +670,7 @@ export function AdminDashboardPage() {
               </button>
             )}
             {tab === 'categories' && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingCat(null);
-                  setCatForm({ name: '', slug: '' });
-                  setSlugManual(false);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className={`${btnPrimary} !px-3 !py-2 sm:!px-5`}
-              >
+              <button type="button" onClick={openNewCategory} className={`${btnPrimary} !px-3 !py-2 sm:!px-5`}>
                 + Category
               </button>
             )}
@@ -920,73 +938,17 @@ export function AdminDashboardPage() {
           {/* Categories */}
           {tab === 'categories' && (
             <div className="space-y-4">
-              <div className={`${cardClass} p-4 sm:p-5`}>
-                <h3 className="mb-4 text-sm font-bold">{editingCat ? 'Edit category' : 'Add category / subcategory'}</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className={labelClass}>Name</label>
-                    <input
-                      className={inputClass}
-                      placeholder="e.g. Women Wear"
-                      value={catForm.name}
-                      onChange={(e) => {
-                        const name = e.target.value;
-                        setCatForm((f) => ({
-                          ...f,
-                          name,
-                          slug: slugManual ? f.slug : slugify(name),
-                        }));
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Slug</label>
-                    <input
-                      className={inputClass}
-                      placeholder="women-wear"
-                      value={catForm.slug}
-                      onChange={(e) => {
-                        setSlugManual(true);
-                        setCatForm({ ...catForm, slug: slugify(e.target.value) });
-                      }}
-                    />
-                    <p className="mt-1 text-[11px] text-neutral-400">Auto-fills from name. Used in product filters.</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={labelClass}>Parent category (optional subcategory)</label>
-                    <select
-                      className={inputClass}
-                      value={catForm.parent_id}
-                      onChange={(e) => setCatForm({ ...catForm, parent_id: e.target.value })}
-                    >
-                      <option value="">None — top-level category</option>
-                      {categories
-                        .filter((c) => !c.parent_id && c.id !== editingCat)
-                        .map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-base font-bold">Categories</h3>
+                  <p className="text-sm text-neutral-500">
+                    Organize products. Add a category or subcategory in the popup form.
+                  </p>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" onClick={saveCat} disabled={loading} className={btnPrimary}>
-                    {loading ? 'Saving…' : editingCat ? 'Update category' : 'Add category'}
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={openNewCategory} className={btnPrimary}>
+                    + Add category
                   </button>
-                  {editingCat && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingCat(null);
-                        setCatForm({ name: '', slug: '', parent_id: '' });
-                        setSlugManual(false);
-                      }}
-                      className={btnGhost}
-                    >
-                      Cancel
-                    </button>
-                  )}
                   {categories.length > 0 && (
                     <button type="button" onClick={openNewProduct} className={btnGhost}>
                       Add product →
@@ -1009,7 +971,9 @@ export function AdminDashboardPage() {
                     </thead>
                     <tbody>
                       {categories.map((c) => {
-                        const count = products.filter((p) => p.category === c.slug || (p as any).subcategory === c.slug).length;
+                        const count = products.filter(
+                          (p) => p.category === c.slug || (p as any).subcategory === c.slug,
+                        ).length;
                         const parent = categories.find((p) => p.id === c.parent_id);
                         return (
                           <tr key={c.id} className="border-b border-neutral-100 hover:bg-neutral-50/80">
@@ -1024,19 +988,7 @@ export function AdminDashboardPage() {
                             <td className="px-4 py-3 text-neutral-600">{count}</td>
                             <td className="px-4 py-3 text-right">
                               <div className="inline-flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingCat(c.id);
-                                    setCatForm({
-                                      name: c.name,
-                                      slug: c.slug,
-                                      parent_id: c.parent_id || '',
-                                    });
-                                    setSlugManual(true);
-                                  }}
-                                  className={btnGhost}
-                                >
+                                <button type="button" onClick={() => openEditCategory(c)} className={btnGhost}>
                                   Edit
                                 </button>
                                 <button
@@ -1054,7 +1006,14 @@ export function AdminDashboardPage() {
                       {categories.length === 0 && (
                         <tr>
                           <td colSpan={5} className="px-4 py-12 text-center text-neutral-400">
-                            No categories yet. Add one above to start selling.
+                            No categories yet.
+                            <button
+                              type="button"
+                              onClick={openNewCategory}
+                              className="mt-3 block w-full font-semibold text-black underline"
+                            >
+                              Add your first category
+                            </button>
                           </td>
                         </tr>
                       )}
@@ -1626,6 +1585,83 @@ export function AdminDashboardPage() {
         </main>
       </div>
 
+      {/* Category modal — same pattern as product popup */}
+      {showCatModal && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close" onClick={closeCatModal} />
+          <div className="relative flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 sm:px-5">
+              <h2 className="text-base font-bold">{editingCat ? 'Edit category' : 'Add category'}</h2>
+              <button type="button" onClick={closeCatModal} className="h-9 w-9 rounded-full hover:bg-neutral-100" aria-label="Close">
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
+              <p className="text-sm text-neutral-500">
+                Categories group products on the shop. Optionally nest under a parent as a subcategory.
+              </p>
+              <div>
+                <label className={labelClass}>Name *</label>
+                <input
+                  className={inputClass}
+                  placeholder="e.g. Women Wear"
+                  value={catForm.name}
+                  autoFocus
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setCatForm((f) => ({
+                      ...f,
+                      name,
+                      slug: slugManual ? f.slug : slugify(name),
+                    }));
+                  }}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Slug</label>
+                <input
+                  className={inputClass}
+                  placeholder="women-wear"
+                  value={catForm.slug}
+                  onChange={(e) => {
+                    setSlugManual(true);
+                    setCatForm({ ...catForm, slug: slugify(e.target.value) });
+                  }}
+                />
+                <p className="mt-1 text-[11px] text-neutral-400">Auto-fills from name. Used in product filters.</p>
+              </div>
+              <div>
+                <label className={labelClass}>Parent category (optional subcategory)</label>
+                <select
+                  className={inputClass}
+                  value={catForm.parent_id}
+                  onChange={(e) => setCatForm({ ...catForm, parent_id: e.target.value })}
+                >
+                  <option value="">None — top-level category</option>
+                  {categories
+                    .filter((c) => !c.parent_id && c.id !== editingCat)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-2 border-t border-neutral-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
+              <button type="button" onClick={closeCatModal} className={btnGhost}>
+                Cancel
+              </button>
+              <button type="button" onClick={saveCat} disabled={loading} className={`${btnPrimary} flex-1`}>
+                {loading ? 'Saving…' : editingCat ? 'Update category' : 'Save category'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Product modal */}
       {showProdModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
@@ -1648,9 +1684,10 @@ export function AdminDashboardPage() {
                     onClick={() => {
                       setShowProdModal(false);
                       setTab('categories');
+                      openNewCategory();
                     }}
                   >
-                    Open Categories
+                    Add category
                   </button>
                 </div>
               ) : (
