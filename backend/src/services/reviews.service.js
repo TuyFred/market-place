@@ -36,12 +36,9 @@ export async function listAllReviews() {
 export async function createReview(productId, payload, user) {
   if (!supabaseAdmin) throw notConfiguredError;
   const rating = Math.min(5, Math.max(1, parseInt(payload.rating, 10) || 5));
-  const body = String(payload.body || '').trim();
-  if (body.length < 5) {
-    const err = new Error('Review must be at least 5 characters');
-    err.statusCode = 400;
-    throw err;
-  }
+  const bodyRaw = String(payload.body || '').trim();
+  // Star-only reviews are allowed; comment is optional
+  const body = (bodyRaw || `Rated ${rating} stars`).slice(0, 2000);
 
   const { data, error } = await supabaseAdmin
     .from('product_reviews')
@@ -52,7 +49,7 @@ export async function createReview(productId, payload, user) {
       user_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Customer',
       rating,
       title: String(payload.title || '').trim().slice(0, 120) || null,
-      body: body.slice(0, 2000),
+      body,
       is_visible: true
     })
     .select()
