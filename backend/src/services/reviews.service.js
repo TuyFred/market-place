@@ -12,10 +12,57 @@ export async function listReviewsForProduct(productId, { includeHidden = false }
   if (!includeHidden) q = q.eq('is_visible', true);
   const { data, error } = await q;
   if (error) {
+    // Table missing / not migrated yet — never break the product page
     console.warn('listReviews:', error.message);
     return [];
   }
   return data || [];
+}
+
+/** Aggregate visible reviews for product cards: { [productId]: { reviewCount, avgRating } } */
+export async function getReviewStatsByProductIds(productIds = []) {
+  const ids = [...new Set((productIds || []).filter(Boolean))];
+  const empty = {};
+  if (!supabaseAdmin || ids.length === 0) return empty;
+
+  const { data, error } = await supabaseAdmin
+    .from('product_reviews')
+    .select('product_id, rating')
+    .eq('is_visible', true)
+    .in('product_id', ids);
+
+  if (error) {
+    console.warn('getReviewStats:', error.message);
+    return empty;
+  }
+
+  const map = {};
+  for (const row of data || []) {
+    const id = row.product_id;
+    if (!map[id]) map[id] = { sum: 0, n: 0 };
+    map[id].sum += Number(row.rating) || 0;
+    map[id].n += 1;
+  }
+
+  const out = {};
+  for (const id of Object.keys(map)) {
+    const { sum, n } = map[id];
+    out[id] = {
+      reviewCount: n,
+      avgRating: n ? Math.round((sum / n) * 10) / 10 : 0
+    };
+  }
+  return out;
+}
+
+export async function attachReviewStats(products = []) {
+  if (!Array.isArray(products) || products.length === 0) return products;
+  const stats = await getReviewStatsByProductIds(products.map((p) => p.id));
+  return products.map((p) => ({
+    ...p,
+    reviewCount: stats[p.id]?.reviewCount || 0,
+    avgRating: stats[p.id]?.avgRating || 0
+  }));
 }
 
 export async function listAllReviews() {
@@ -56,7 +103,16 @@ export async function createReview(productId, payload, user) {
     .single();
 
   if (error) {
-    const err = new Error(error.message);
+    const msg = error.message || 'Could not save review';
+    const missing =
+      /does not exist|schema cache|product_reviews/i.test(msg) ||
+      error.code === '42P01' ||
+      error.code === 'PGRST205';
+    const err = new Error(
+      missing
+        ? 'Reviews are not set up yet. Run supabase-migrate-reviews-likes.sql in Supabase.'
+        : msg
+    );
     err.statusCode = 400;
     throw err;
   }

@@ -58,10 +58,13 @@ export function ProductReviews({ productId }: Props) {
   const [openForm, setOpenForm] = useState(false);
 
   const load = () => {
-    axios.get<Review[]>(`/api/reviews/product/${productId}`).then((r) => setReviews(r.data || [])).catch(() => setReviews([]));
+    axios
+      .get<Review[]>(`/api/reviews/product/${productId}`)
+      .then((r) => setReviews(Array.isArray(r.data) ? r.data : []))
+      .catch(() => setReviews([]));
     axios
       .get<{ count: number; liked: boolean }>(`/api/reviews/product/${productId}/likes`)
-      .then((r) => setLikes(r.data || { count: 0, liked: false }))
+      .then((r) => setLikes(r.data && typeof r.data.count === 'number' ? r.data : { count: 0, liked: false }))
       .catch(() => setLikes({ count: 0, liked: false }));
   };
 
@@ -169,26 +172,26 @@ export function ProductReviews({ productId }: Props) {
       </div>
 
       {/* Compact write review */}
-      <div className="mt-5 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 sm:p-5">
+      <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50/80 p-3 sm:p-4">
         {!openForm ? (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-neutral-600">Tap stars and submit your rating.</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-neutral-500 sm:text-sm">Rate this product</p>
             <button
               type="button"
               onClick={startReview}
-              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-black px-5 text-sm font-semibold text-white touch-manipulation sm:w-auto"
+              className="inline-flex min-h-[36px] items-center justify-center rounded-full bg-black px-4 text-xs font-semibold text-white touch-manipulation"
             >
               Write a review
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-bold text-black">Your rating</p>
+              <p className="text-xs font-bold text-black sm:text-sm">Your rating</p>
               <button
                 type="button"
                 onClick={() => setOpenForm(false)}
-                className="text-xs font-semibold text-neutral-500 hover:text-black"
+                className="text-[11px] font-semibold text-neutral-500 hover:text-black"
               >
                 Cancel
               </button>
@@ -197,24 +200,26 @@ export function ProductReviews({ productId }: Props) {
               <Stars value={rating} onChange={setRating} size="lg" />
             </div>
             <textarea
-              className="min-h-[72px] w-full resize-none rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm leading-relaxed text-black placeholder:text-neutral-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-              placeholder="Add a short comment (optional)"
+              className="min-h-[56px] w-full resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm leading-relaxed text-black placeholder:text-neutral-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+              placeholder="Comment (optional)"
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              rows={3}
+              rows={2}
             />
-            {msg && <p className="text-xs text-neutral-600">{msg}</p>}
-            <button
-              type="button"
-              disabled={saving}
-              onClick={submit}
-              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-black text-sm font-semibold text-white touch-manipulation disabled:opacity-50"
-            >
-              {saving ? 'Submitting…' : 'Submit'}
-            </button>
+            {msg && <p className="text-[11px] text-neutral-600">{msg}</p>}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={submit}
+                className="inline-flex min-h-[36px] items-center justify-center rounded-full bg-black px-5 text-xs font-semibold text-white touch-manipulation disabled:opacity-50"
+              >
+                {saving ? '…' : 'Submit'}
+              </button>
+            </div>
           </div>
         )}
-        {!openForm && msg && <p className="mt-3 text-xs text-emerald-700">{msg}</p>}
+        {!openForm && msg && <p className="mt-2 text-[11px] text-emerald-700">{msg}</p>}
       </div>
 
       {/* Review list */}
