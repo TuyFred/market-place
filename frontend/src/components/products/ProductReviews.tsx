@@ -16,7 +16,7 @@ type Props = { productId: string };
 function Stars({
   value,
   onChange,
-  size = 'md',
+  size = 'lg',
 }: {
   value: number;
   onChange?: (n: number) => void;
