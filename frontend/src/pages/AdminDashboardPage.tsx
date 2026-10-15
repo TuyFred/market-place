@@ -23,9 +23,11 @@ type Order = {
   customer_name: string;
   customer_phone: string;
   customer_address: string;
+  user_email?: string;
   status?: string;
   created_at: string;
   notes?: string;
+  quantity?: number;
   products?: { name: string; price: number; category: string; imageUrl?: string } | null;
   proof_url?: string;
   payment_method?: string;
@@ -121,6 +123,9 @@ export function AdminDashboardPage() {
   const [productsPage, setProductsPage] = useState(1);
   const [usersPage, setUsersPage] = useState(1);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [orderFilter, setOrderFilter] = useState<'all' | 'payment_review' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'pending'>('all');
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'customer' | 'manager' | 'admin'>('all');
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const pageSize = 8;
   const MAX_BULK_DELETE = 10;
 
@@ -368,10 +373,40 @@ export function AdminDashboardPage() {
     try {
       await axios.put(`/api/orders/${id}/status`, { status }, { headers: authHeaders() });
       await fetchAll();
+      const labels: Record<string, string> = {
+        confirmed: 'Payment approved — order confirmed',
+        payment_review: 'Marked for payment review',
+        shipped: 'Order marked as shipped',
+        delivered: 'Order marked as delivered',
+        cancelled: 'Order cancelled / payment rejected',
+        pending: 'Order set to awaiting payment',
+      };
+      setMsg(labels[status] || 'Order updated');
+      setViewingOrder((prev) => (prev?.id === id ? { ...prev, status } : prev));
     } catch {
       setMsg('Error updating status');
     }
   };
+
+  const filteredOrders = useMemo(() => {
+    if (orderFilter === 'all') return orders;
+    return orders.filter((o) => (o.status || 'pending') === orderFilter);
+  }, [orders, orderFilter]);
+
+  const filteredUsers = useMemo(() => {
+    if (userRoleFilter === 'all') return users;
+    return users.filter((u) => u.role === userRoleFilter);
+  }, [users, userRoleFilter]);
+
+  const userOrderCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const o of orders) {
+      const key = (o.user_email || '').toLowerCase();
+      if (!key) continue;
+      map[key] = (map[key] || 0) + 1;
+    }
+    return map;
+  }, [orders]);
 
   const changeRole = async (id: string, role: string) => {
     try {
@@ -510,7 +545,8 @@ export function AdminDashboardPage() {
       : [];
 
   const productPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
-  const userPages = Math.max(1, Math.ceil(users.length / pageSize));
+  const userPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const ordersNeedingReview = orders.filter((o) => o.status === 'payment_review').length;
 
   return (
     <div className="fixed inset-0 flex bg-neutral-50 text-black">
@@ -638,7 +674,18 @@ export function AdminDashboardPage() {
                 {[
                   { label: 'Products', value: products.length, hint: 'In catalog', action: () => setTab('products') },
                   { label: 'Categories', value: categories.length, hint: 'Collections', action: () => setTab('categories') },
-                  { label: 'Orders', value: orders.length, hint: `${orders.filter((o) => o.status === 'pending').length} pending`, action: () => setTab('orders') },
+                  {
+                    label: 'Orders',
+                    value: orders.length,
+                    hint:
+                      ordersNeedingReview > 0
+                        ? `${ordersNeedingReview} need payment review`
+                        : `${orders.filter((o) => o.status === 'pending').length} pending`,
+                    action: () => {
+                      setOrderFilter(ordersNeedingReview > 0 ? 'payment_review' : 'all');
+                      setTab('orders');
+                    },
+                  },
                   { label: 'Users', value: users.length, hint: 'Accounts', action: () => setTab('users') },
                 ].map((s) => (
                   <button
@@ -1015,146 +1062,351 @@ export function AdminDashboardPage() {
 
           {/* Orders */}
           {tab === 'orders' && (
-            <div className={`${cardClass} overflow-hidden`}>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
-                      <th className="px-4 py-3">Customer</th>
-                      <th className="px-4 py-3">Product</th>
-                      <th className="px-4 py-3">Payment</th>
-                      <th className="px-4 py-3">Proof</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Process</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((o) => (
-                      <tr key={o.id} className="border-b border-neutral-100">
-                        <td className="px-4 py-3">
-                          <p className="font-semibold">{o.customer_name}</p>
-                          <p className="text-xs text-neutral-600">{o.customer_phone}</p>
-                          <p className="max-w-[160px] truncate text-xs text-neutral-500">{o.customer_address}</p>
-                        </td>
-                        <td className="px-4 py-3 text-neutral-700">{o.products?.name || '—'}</td>
-                        <td className="px-4 py-3 text-xs text-neutral-600">
-                          <p className="capitalize">{o.payment_method || '—'}</p>
-                          <p className="text-neutral-400">{o.payment_reference || o.payment_status || ''}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          {o.proof_url ? (
-                            <a href={o.proof_url} target="_blank" rel="noreferrer" className="inline-block overflow-hidden rounded-lg border border-neutral-200">
-                              <img src={o.proof_url} alt="proof" className="h-10 w-12 object-cover" />
-                            </a>
-                          ) : (
-                            <span className="text-neutral-300">—</span>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-base font-bold">Customer orders</h3>
+                  <p className="text-sm text-neutral-500">
+                    Review payment proof, confirm payment, then ship.
+                    {ordersNeedingReview > 0 ? (
+                      <span className="ml-1 font-semibold text-orange-700">
+                        {ordersNeedingReview} waiting for review
+                      </span>
+                    ) : null}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(
+                    [
+                      ['all', 'All'],
+                      ['payment_review', 'Review'],
+                      ['pending', 'Pending'],
+                      ['confirmed', 'Confirmed'],
+                      ['shipped', 'Shipped'],
+                      ['delivered', 'Delivered'],
+                      ['cancelled', 'Cancelled'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setOrderFilter(key)}
+                      className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${
+                        orderFilter === key
+                          ? 'bg-black text-white'
+                          : 'border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {filteredOrders.map((o) => {
+                  const qty = o.quantity || 1;
+                  const unit = o.products?.price ?? 0;
+                  const total = unit * qty;
+                  return (
+                    <article key={o.id} className={`${cardClass} overflow-hidden`}>
+                      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:p-5">
+                        <div className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100 sm:h-24 sm:w-20">
+                          {o.products?.imageUrl ? (
+                            <img src={o.products.imageUrl} alt="" className="h-full w-full object-cover" />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="text-xs text-neutral-400">
+                                {new Date(o.created_at).toLocaleString()} · #{o.id.slice(0, 8)}
+                              </p>
+                              <h4 className="mt-0.5 text-base font-bold text-black">
+                                {o.products?.name || 'Product'}
+                              </h4>
+                              <p className="text-sm text-neutral-600">
+                                Qty {qty}
+                                {unit ? ` · ${formatRwf(unit)}` : ''}
+                                {total ? ` · Total ${formatRwf(total)}` : ''}
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase ${
+                                statusColors[o.status || 'pending'] || statusColors.pending
+                              }`}
+                            >
+                              {(o.status || 'pending').replace('_', ' ')}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                            <div className="rounded-xl bg-neutral-50 px-3 py-2">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Customer</p>
+                              <p className="font-semibold text-black">{o.customer_name}</p>
+                              <p className="text-xs text-neutral-600">{o.customer_phone}</p>
+                              {o.user_email && <p className="text-xs text-neutral-500">{o.user_email}</p>}
+                              <p className="mt-0.5 text-xs text-neutral-500">{o.customer_address}</p>
+                            </div>
+                            <div className="rounded-xl bg-neutral-50 px-3 py-2">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Payment</p>
+                              <p className="capitalize font-semibold text-black">{o.payment_method || '—'}</p>
+                              <p className="text-xs text-neutral-600">
+                                Status: {o.payment_status || '—'}
+                              </p>
+                              {o.payment_reference && (
+                                <p className="text-xs text-neutral-500">Ref: {o.payment_reference}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {o.notes && (
+                            <p className="mt-2 line-clamp-2 text-xs text-neutral-500">Notes: {o.notes}</p>
                           )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusColors[o.status || 'pending'] || statusColors.pending}`}>
-                            {o.status || 'pending'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <select
-                            className={`${inputClass} !w-auto !py-1.5 text-xs`}
-                            value={o.status || 'pending'}
-                            onChange={(e) => updateStatus(o.id, e.target.value)}
-                          >
-                            <option value="pending">Awaiting payment</option>
-                            <option value="payment_review">Review payment</option>
-                            <option value="confirmed">Approve / confirmed</option>
-                            <option value="shipped">Shipped</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancel / reject</option>
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
-                    {orders.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-neutral-400">
-                          No orders yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
+                            {o.proof_url ? (
+                              <a
+                                href={o.proof_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white p-1.5 pr-3 text-xs font-semibold hover:bg-neutral-50"
+                              >
+                                <img src={o.proof_url} alt="Payment proof" className="h-10 w-12 rounded-lg object-cover" />
+                                View proof
+                              </a>
+                            ) : (
+                              <span className="rounded-full bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-800">
+                                No proof yet
+                              </span>
+                            )}
+                            <button type="button" className={btnGhost} onClick={() => setViewingOrder(o)}>
+                              Details
+                            </button>
+                            {(o.status === 'payment_review' || o.status === 'pending') && (
+                              <button
+                                type="button"
+                                className={btnPrimary}
+                                onClick={() => updateStatus(o.id, 'confirmed')}
+                              >
+                                Confirm payment
+                              </button>
+                            )}
+                            {o.status === 'confirmed' && (
+                              <button
+                                type="button"
+                                className={btnPrimary}
+                                onClick={() => updateStatus(o.id, 'shipped')}
+                              >
+                                Mark shipped
+                              </button>
+                            )}
+                            {o.status === 'shipped' && (
+                              <button
+                                type="button"
+                                className={btnPrimary}
+                                onClick={() => updateStatus(o.id, 'delivered')}
+                              >
+                                Mark delivered
+                              </button>
+                            )}
+                            {o.status !== 'cancelled' && o.status !== 'delivered' && (
+                              <button
+                                type="button"
+                                className="rounded-full px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                                onClick={() => updateStatus(o.id, 'cancelled')}
+                              >
+                                Reject / cancel
+                              </button>
+                            )}
+                            <select
+                              className={`${inputClass} !ml-auto !w-auto !py-1.5 text-xs`}
+                              value={o.status || 'pending'}
+                              onChange={(e) => updateStatus(o.id, e.target.value)}
+                              aria-label="Change order status"
+                            >
+                              <option value="pending">Awaiting payment</option>
+                              <option value="payment_review">Review payment</option>
+                              <option value="confirmed">Confirmed</option>
+                              <option value="shipped">Shipped</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+                {filteredOrders.length === 0 && (
+                  <div className={`${cardClass} py-16 text-center text-neutral-400`}>
+                    No orders in this filter.
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* Users */}
           {tab === 'users' && (
-            <div className={`${cardClass} overflow-hidden`}>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
-                      <th className="px-4 py-3">User</th>
-                      <th className="px-4 py-3">Email</th>
-                      <th className="px-4 py-3">Role</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.slice((usersPage - 1) * pageSize, usersPage * pageSize).map((u) => (
-                      <tr key={u.id} className="border-b border-neutral-100">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold">
-                              {(u.fullName || u.email).charAt(0).toUpperCase()}
-                            </span>
-                            <span className="font-semibold">{u.fullName || '—'}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-neutral-600">{u.email}</td>
-                        <td className="px-4 py-3 capitalize text-neutral-700">{u.role}</td>
-                        <td className="px-4 py-3 text-right">
-                          {storedUser?.role === 'admin' && (
-                            <div className="inline-flex items-center gap-2">
-                              <select
-                                className={`${inputClass} !w-auto !py-1.5 text-xs`}
-                                value={u.role}
-                                onChange={(e) => changeRole(u.id, e.target.value)}
-                              >
-                                <option value="customer">Customer</option>
-                                <option value="manager">Manager</option>
-                                <option value="admin">Admin</option>
-                              </select>
-                              <button type="button" onClick={() => resetPassword(u.id)} className={btnGhost}>
-                                Reset
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                    {users.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-12 text-center text-neutral-400">
-                          No users found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-base font-bold">Customers & staff</h3>
+                  <p className="text-sm text-neutral-500">
+                    Manage roles for customers, managers, and admins.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(
+                    [
+                      ['all', 'All'],
+                      ['customer', 'Customers'],
+                      ['manager', 'Managers'],
+                      ['admin', 'Admins'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setUserRoleFilter(key);
+                        setUsersPage(1);
+                      }}
+                      className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${
+                        userRoleFilter === key
+                          ? 'bg-black text-white'
+                          : 'border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {label}
+                      <span className="ml-1 opacity-70">
+                        (
+                        {key === 'all'
+                          ? users.length
+                          : users.filter((u) => u.role === key).length}
+                        )
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center justify-end gap-2 border-t border-neutral-100 px-4 py-3">
-                <button type="button" disabled={usersPage === 1} onClick={() => setUsersPage((p) => Math.max(1, p - 1))} className={btnGhost}>
-                  Prev
-                </button>
-                <span className="text-xs text-neutral-500">
-                  Page {usersPage} / {userPages}
-                </span>
-                <button
-                  type="button"
-                  disabled={usersPage >= userPages}
-                  onClick={() => setUsersPage((p) => p + 1)}
-                  className={btnGhost}
-                >
-                  Next
-                </button>
+
+              {storedUser?.role === 'admin' && (
+                <div className={`${cardClass} flex flex-wrap items-center justify-between gap-3 p-4`}>
+                  <p className="text-sm text-neutral-600">Need another admin or manager?</p>
+                  <button type="button" className={btnPrimary} onClick={() => setTab('settings')}>
+                    Add staff in Settings →
+                  </button>
+                </div>
+              )}
+
+              <div className={`${cardClass} overflow-hidden`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[720px] text-sm">
+                    <thead>
+                      <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
+                        <th className="px-4 py-3">User</th>
+                        <th className="px-4 py-3">Email</th>
+                        <th className="px-4 py-3">Role</th>
+                        <th className="px-4 py-3">Orders</th>
+                        <th className="px-4 py-3 text-right">Manage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.slice((usersPage - 1) * pageSize, usersPage * pageSize).map((u) => {
+                        const orderCount = userOrderCounts[(u.email || '').toLowerCase()] || 0;
+                        return (
+                          <tr key={u.id} className="border-b border-neutral-100 hover:bg-neutral-50/80">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold">
+                                  {(u.fullName || u.email).charAt(0).toUpperCase()}
+                                </span>
+                                <span className="font-semibold">{u.fullName || '—'}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-neutral-600">{u.email}</td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize ${
+                                  u.role === 'admin'
+                                    ? 'bg-black text-white'
+                                    : u.role === 'manager'
+                                      ? 'bg-violet-100 text-violet-800'
+                                      : 'bg-neutral-100 text-neutral-700'
+                                }`}
+                              >
+                                {u.role}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {orderCount > 0 ? (
+                                <button
+                                  type="button"
+                                  className="text-sm font-semibold text-black underline-offset-2 hover:underline"
+                                  onClick={() => {
+                                    setOrderFilter('all');
+                                    setTab('orders');
+                                    setMsg(`Showing all orders — filter by ${u.email} in notes/email`);
+                                  }}
+                                >
+                                  {orderCount} order{orderCount === 1 ? '' : 's'}
+                                </button>
+                              ) : (
+                                <span className="text-neutral-400">0</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {storedUser?.role === 'admin' ? (
+                                <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                                  <select
+                                    className={`${inputClass} !w-auto !py-1.5 text-xs`}
+                                    value={u.role}
+                                    disabled={u.id === storedUser.id}
+                                    onChange={(e) => changeRole(u.id, e.target.value)}
+                                  >
+                                    <option value="customer">Customer</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="admin">Admin</option>
+                                  </select>
+                                  <button type="button" onClick={() => resetPassword(u.id)} className={btnGhost}>
+                                    Reset pwd
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-neutral-400">Admin only</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {filteredUsers.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-12 text-center text-neutral-400">
+                            No users in this filter.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex items-center justify-end gap-2 border-t border-neutral-100 px-4 py-3">
+                  <button type="button" disabled={usersPage === 1} onClick={() => setUsersPage((p) => Math.max(1, p - 1))} className={btnGhost}>
+                    Prev
+                  </button>
+                  <span className="text-xs text-neutral-500">
+                    Page {usersPage} / {userPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={usersPage >= userPages}
+                    onClick={() => setUsersPage((p) => p + 1)}
+                    className={btnGhost}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1655,6 +1907,92 @@ export function AdminDashboardPage() {
               )}
               <button type="button" onClick={() => openEditProduct(viewingProd)} className={`${btnPrimary} mt-auto`}>
                 Edit product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewingOrder && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+          <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close" onClick={() => setViewingOrder(null)} />
+          <div className="relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Order detail</p>
+                <h2 className="mt-1 text-lg font-bold">{viewingOrder.products?.name || 'Order'}</h2>
+                <p className="text-xs text-neutral-500">#{viewingOrder.id}</p>
+              </div>
+              <button type="button" onClick={() => setViewingOrder(null)} className="h-9 w-9 rounded-full hover:bg-neutral-100">
+                ✕
+              </button>
+            </div>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex justify-between gap-4 border-b border-neutral-100 pb-2">
+                <dt className="text-neutral-500">Customer</dt>
+                <dd className="text-right font-semibold">{viewingOrder.customer_name}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-neutral-100 pb-2">
+                <dt className="text-neutral-500">Phone</dt>
+                <dd className="text-right">{viewingOrder.customer_phone}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-neutral-100 pb-2">
+                <dt className="text-neutral-500">Email</dt>
+                <dd className="text-right text-xs">{viewingOrder.user_email || '—'}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-neutral-100 pb-2">
+                <dt className="text-neutral-500">Address</dt>
+                <dd className="max-w-[60%] text-right">{viewingOrder.customer_address}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-neutral-100 pb-2">
+                <dt className="text-neutral-500">Qty / total</dt>
+                <dd className="text-right font-semibold">
+                  {viewingOrder.quantity || 1}
+                  {viewingOrder.products?.price != null
+                    ? ` · ${formatRwf((viewingOrder.products.price || 0) * (viewingOrder.quantity || 1))}`
+                    : ''}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-neutral-100 pb-2">
+                <dt className="text-neutral-500">Payment</dt>
+                <dd className="text-right capitalize">
+                  {viewingOrder.payment_method || '—'} · {viewingOrder.payment_status || '—'}
+                </dd>
+              </div>
+              {viewingOrder.payment_reference && (
+                <div className="flex justify-between gap-4 border-b border-neutral-100 pb-2">
+                  <dt className="text-neutral-500">Reference</dt>
+                  <dd className="text-right text-xs">{viewingOrder.payment_reference}</dd>
+                </div>
+              )}
+            </dl>
+            {viewingOrder.proof_url && (
+              <a href={viewingOrder.proof_url} target="_blank" rel="noreferrer" className="mt-4 block overflow-hidden rounded-xl border border-neutral-200">
+                <img src={viewingOrder.proof_url} alt="Proof" className="max-h-64 w-full object-contain bg-neutral-50" />
+              </a>
+            )}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {(viewingOrder.status === 'payment_review' || viewingOrder.status === 'pending') && (
+                <button type="button" className={btnPrimary} onClick={() => updateStatus(viewingOrder.id, 'confirmed')}>
+                  Confirm payment
+                </button>
+              )}
+              {viewingOrder.status === 'confirmed' && (
+                <button type="button" className={btnPrimary} onClick={() => updateStatus(viewingOrder.id, 'shipped')}>
+                  Mark shipped
+                </button>
+              )}
+              {viewingOrder.status !== 'cancelled' && viewingOrder.status !== 'delivered' && (
+                <button
+                  type="button"
+                  className="rounded-full px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                  onClick={() => updateStatus(viewingOrder.id, 'cancelled')}
+                >
+                  Reject
+                </button>
+              )}
+              <button type="button" className={btnGhost} onClick={() => setViewingOrder(null)}>
+                Close
               </button>
             </div>
           </div>

@@ -108,15 +108,13 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-neutral-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-neutral-400">
-            © {new Date().getFullYear()} {BRAND.name}. All rights reserved.
-          </p>
           <p className="text-xs text-neutral-500">
+            © {new Date().getFullYear()}{' '}
             <a
               href="https://www.voltaleltd.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 font-semibold tracking-wide text-black transition-opacity hover:opacity-70"
+              className="inline-flex items-center gap-1 font-semibold text-black transition-opacity hover:opacity-70"
               aria-label="Voltale — open website"
             >
               Voltale
@@ -124,7 +122,9 @@ export function Footer() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
               </svg>
             </a>
+            . All rights reserved.
           </p>
+          <p className="text-xs text-neutral-400">{BRAND.shortName} shop</p>
         </div>
       </div>
     </footer>
