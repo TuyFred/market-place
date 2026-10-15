@@ -1,10 +1,18 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LoginForm } from '../components/auth/LoginForm';
 import { useAuth } from '../context/AuthContext';
 
+type LoginNavState = {
+  registered?: boolean;
+  email?: string;
+  message?: string;
+};
+
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { handleLoginSuccess } = useAuth();
+  const navState = (location.state || {}) as LoginNavState;
 
   return (
     <div className="min-h-screen bg-[#0f2540] flex flex-col items-center justify-center p-6">
@@ -51,6 +59,12 @@ export default function LoginPage() {
 
           <LoginForm
             variant="dark"
+            initialEmail={navState.email || ''}
+            bannerMessage={
+              navState.registered
+                ? navState.message || 'Your account has been created successfully. Please sign in.'
+                : ''
+            }
             onNeedAccount={() => navigate('/register')}
             onSuccess={({ user, accessToken }) => {
               handleLoginSuccess({ user, token: accessToken });

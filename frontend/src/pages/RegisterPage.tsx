@@ -43,7 +43,19 @@ export default function RegisterPage() {
           <h2 className="text-2xl text-amber-400 font-bold text-center mb-3">Join AFROLUXO</h2>
           <p className="text-center text-sm text-slate-300 mb-4">Sign up to track orders with AFROLUXO.</p>
 
-          <RegisterForm variant="dark" onRegistered={() => navigate('/login')} />
+          <RegisterForm
+            variant="dark"
+            onRegistered={(payload) =>
+              navigate('/login', {
+                replace: true,
+                state: {
+                  registered: true,
+                  email: payload?.email || '',
+                  message: 'Your account has been created successfully. Please sign in.',
+                },
+              })
+            }
+          />
 
           <div className="mt-5 text-center text-sm">
             <a href="/login" className="text-amber-400 font-semibold">Sign in</a>

@@ -59,8 +59,9 @@ export function HomePage() {
     if (sort === 'price_asc') next.sort((a, b) => a.price - b.price);
     else if (sort === 'price_desc') next.sort((a, b) => b.price - a.price);
     else if (sort === 'name_asc') next.sort((a, b) => a.name.localeCompare(b.name));
+    else next.sort((a, b) => String(b.id).localeCompare(String(a.id)));
 
-    return next.slice(0, 20);
+    return next;
   }, [products, availability, maxPrice, sort]);
 
   const closeMenus = () => {

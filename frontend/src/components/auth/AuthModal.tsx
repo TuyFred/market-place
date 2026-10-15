@@ -16,6 +16,8 @@ export function AuthModal() {
 
   const [mode, setMode] = useState<'login' | 'register'>(authModalMode);
   const [visible, setVisible] = useState(false);
+  const [registerBanner, setRegisterBanner] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
 
   useEffect(() => { setMode(authModalMode); }, [authModalMode]);
 
@@ -87,7 +89,10 @@ export function AuthModal() {
           </button>
           <button
             type="button"
-            onClick={() => setMode('register')}
+            onClick={() => {
+              setRegisterBanner('');
+              setMode('register');
+            }}
             className={`rounded-full py-2 text-[11px] font-bold uppercase tracking-wider transition-colors ${mode === 'register' ? 'bg-ink text-white' : 'text-ink/50 hover:text-ink'}`}
           >
             Sign up
@@ -97,8 +102,14 @@ export function AuthModal() {
         <div className="px-5 pb-5">
           {mode === 'login' ? (
             <LoginForm
+              key={`login-${loginEmail}-${registerBanner}`}
               variant="light"
-              onNeedAccount={() => setMode('register')}
+              initialEmail={loginEmail}
+              bannerMessage={registerBanner}
+              onNeedAccount={() => {
+                setRegisterBanner('');
+                setMode('register');
+              }}
               onForgotPassword={() => {
                 handleClose();
                 navigate('/forgot-password');
@@ -113,7 +124,11 @@ export function AuthModal() {
           ) : (
             <RegisterForm
               variant="light"
-              onRegistered={() => setMode('login')}
+              onRegistered={(payload) => {
+                setLoginEmail(payload?.email || '');
+                setRegisterBanner('Your account has been created successfully. Please sign in.');
+                setMode('login');
+              }}
             />
           )}
         </div>

@@ -10,10 +10,19 @@ type Props = {
   onNeedAccount?: () => void;
   onForgotPassword?: () => void;
   variant?: 'dark' | 'light';
+  initialEmail?: string;
+  bannerMessage?: string;
 };
 
-export function LoginForm({ onSuccess, onNeedAccount, onForgotPassword, variant = 'light' }: Props) {
-  const [email, setEmail] = useState('');
+export function LoginForm({
+  onSuccess,
+  onNeedAccount,
+  onForgotPassword,
+  variant = 'light',
+  initialEmail = '',
+  bannerMessage = '',
+}: Props) {
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +60,17 @@ export function LoginForm({ onSuccess, onNeedAccount, onForgotPassword, variant 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {bannerMessage && (
+        <div
+          className={
+            variant === 'dark'
+              ? 'rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-center text-[12px] font-medium text-emerald-300'
+              : 'rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-center text-[12px] font-medium text-emerald-800'
+          }
+        >
+          {bannerMessage}
+        </div>
+      )}
       <div className="space-y-1.5">
         <label className="text-[11px] font-medium text-slate-400 ml-1">Email Address</label>
         <div className="relative">
