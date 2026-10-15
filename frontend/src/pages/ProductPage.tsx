@@ -7,15 +7,14 @@ import { useCheckout } from '../context/CheckoutContext';
 import { useAuth } from '../context/AuthContext';
 import { SAMPLE_IMAGES } from '../config/brand';
 import { formatRwf } from '../utils/format';
-import { buildProductWhatsAppMessage, openWhatsApp } from '../utils/whatsapp';
-import { fetchImageBlob } from '../utils/image';
+import { orderProductOnWhatsApp } from '../utils/orderWhatsApp';
 import { AppBackButton } from '../components/layout/AppBackButton';
 
 export function ProductPage() {
   const { id } = useParams();
   const { addToCart } = useCart();
   const { openCheckout } = useCheckout();
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { isAuthenticated, openAuthModal, user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,32 +103,8 @@ export function ProductPage() {
     setTimeout(() => setAdded(false), 2000);
   };
 
-  const orderOnWhatsApp = async () => {
-    const price = formatRwf(product.price);
-    const imageUrl = product.imageUrl || product.imageUrls?.[0] || '';
-    const body = buildProductWhatsAppMessage({
-      name: product.name,
-      priceLabel: price,
-      category: product.category,
-      productId: product.id,
-      imageUrl,
-    });
-    if (navigator.share && imageUrl) {
-      try {
-        const blob = await fetchImageBlob(imageUrl, product.id);
-        const ext = (blob.type && blob.type.split('/')?.[1]) || 'jpg';
-        const file = new File([blob], `${product.name.replace(/\s+/g, '_')}.${ext}`, {
-          type: blob.type || 'image/jpeg',
-        });
-        if ((navigator as any).canShare?.({ files: [file] })) {
-          await (navigator as any).share({ files: [file], text: body });
-          return;
-        }
-      } catch {
-        /* fall through */
-      }
-    }
-    openWhatsApp(body);
+  const orderOnWhatsApp = () => {
+    orderProductOnWhatsApp(product, { isAuthenticated, openAuthModal, user });
   };
 
   return (

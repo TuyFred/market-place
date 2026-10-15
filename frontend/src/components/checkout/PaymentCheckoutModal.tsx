@@ -93,6 +93,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
     e.preventDefault();
     if (!isAuthenticated || !token) {
       openAuthModal('login');
+      setError('Please sign in to place an order.');
       return;
     }
     const v = validate();

@@ -4,12 +4,12 @@ import { useCheckout } from '../context/CheckoutContext';
 import { SAMPLE_IMAGES } from '../config/brand';
 import { formatRwf } from '../utils/format';
 import { Link } from 'react-router-dom';
-import { buildCartWhatsAppMessage, openWhatsApp } from '../utils/whatsapp';
+import { orderCartOnWhatsApp } from '../utils/orderWhatsApp';
 import { AppBackButton } from '../components/layout/AppBackButton';
 
 export function CartPage() {
   const { items, totalItems, removeFromCart, updateQuantity } = useCart();
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { isAuthenticated, openAuthModal, user } = useAuth();
   const { openCheckout } = useCheckout();
 
   const totalPrice = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -23,17 +23,7 @@ export function CartPage() {
   };
 
   const orderCartWhatsApp = () => {
-    if (!items.length) return;
-    const body = buildCartWhatsAppMessage(
-      items.map((i) => ({
-        name: i.product.name,
-        quantity: i.quantity,
-        lineTotalLabel: formatRwf(i.product.price * i.quantity),
-        productId: i.product.id,
-      })),
-      formatRwf(totalPrice),
-    );
-    openWhatsApp(body);
+    orderCartOnWhatsApp(items, { isAuthenticated, openAuthModal, user });
   };
 
   return (

@@ -4,8 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { formatRwf } from '../../utils/format';
 import { SAMPLE_IMAGES } from '../../config/brand';
-import { buildProductWhatsAppMessage, openWhatsApp } from '../../utils/whatsapp';
-import { fetchImageBlob } from '../../utils/image';
+import { orderProductOnWhatsApp } from '../../utils/orderWhatsApp';
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 export type Product = {
@@ -47,7 +46,7 @@ function writeWishlist(ids: Set<string>) {
 export function ProductCard({ product, variant = 'default' }: ProductCardProps) {
   const { addToCart } = useCart();
   const { openCheckout } = useCheckout();
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { isAuthenticated, openAuthModal, user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [added, setAdded] = useState(false);
@@ -167,36 +166,10 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
     setWishlisted(next.has(product.id));
   };
 
-  const orderOnWhatsApp = async (e: React.MouseEvent) => {
+  const orderOnWhatsApp = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const price = formatRwf(product.price);
-    const imageUrl = product.imageUrl || product.imageUrls?.[0] || '';
-    const body = buildProductWhatsAppMessage({
-      name: product.name,
-      priceLabel: price,
-      category: product.category,
-      productId: product.id,
-      imageUrl,
-    });
-
-    if (navigator.share && imageUrl) {
-      try {
-        const blob = await fetchImageBlob(imageUrl, product.id);
-        const ext = (blob.type && blob.type.split('/')?.[1]) || 'jpg';
-        const file = new File([blob], `${product.name.replace(/\s+/g, '_')}.${ext}`, {
-          type: blob.type || 'image/jpeg',
-        });
-        if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
-          await (navigator as any).share({ files: [file], text: body });
-          return;
-        }
-      } catch {
-        /* fall through */
-      }
-    }
-
-    openWhatsApp(body);
+    orderProductOnWhatsApp(product, { isAuthenticated, openAuthModal, user });
   };
 
   const onTouchStart = (e: React.TouchEvent) => {
