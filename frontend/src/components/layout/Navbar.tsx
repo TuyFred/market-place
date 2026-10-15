@@ -161,12 +161,10 @@ export function Navbar() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadCatalog = () => {
     axios
       .get<SearchResult[]>('/api/products')
       .then((res) => {
-        if (cancelled) return;
         const list = (res.data || []).map((p) => ({
           id: p.id,
           name: p.name,
@@ -176,13 +174,16 @@ export function Navbar() {
         }));
         setCatalog(list);
       })
-      .catch(() => {
-        if (!cancelled) setCatalog([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .catch(() => setCatalog([]));
+  };
+
+  useEffect(() => {
+    loadCatalog();
   }, []);
+
+  useEffect(() => {
+    if (searchOpen) loadCatalog();
+  }, [searchOpen]);
 
   const results = useMemo(() => {
     const q = query.trim();

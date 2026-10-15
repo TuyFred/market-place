@@ -26,7 +26,7 @@ CORS_ORIGIN=*
 ### `frontend/.env` (local)
 
 ```env
-VITE_WHATSAPP_NUMBER=+250784017000
+VITE_WHATSAPP_NUMBER=+13653369344
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...your_anon_key
 # Leave empty locally so Vite proxies /api to localhost:4000

@@ -13,7 +13,7 @@ export const BRAND = {
   location: 'Canada',
   social: {
     instagram: 'https://www.instagram.com/afroluxo_by_asi/',
-    whatsapp: 'https://wa.me/250784017000',
+    whatsapp: 'https://wa.me/13653369344',
     email: 'mailto:hello@afroluxo.com',
     facebook: 'https://www.facebook.com/',
     tiktok: 'https://www.tiktok.com/',

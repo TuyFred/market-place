@@ -3,19 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { formatRwf } from '../utils/format';
 import { BRAND, SAMPLE_IMAGES } from '../config/brand';
-import {
-  isDemoAdminToken,
-  loadDemoCategories,
-  loadDemoOrders,
-  loadDemoProducts,
-  loadDemoUsers,
-  saveDemoCategories,
-  saveDemoOrders,
-  saveDemoProducts,
-  saveDemoUsers,
-  type DemoCategory,
-  type DemoProduct,
-} from '../config/demoAuth';
 
 type Product = {
   id: string;
@@ -133,20 +120,28 @@ export function AdminDashboardPage() {
 
   const [productsPage, setProductsPage] = useState(1);
   const [usersPage, setUsersPage] = useState(1);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const pageSize = 8;
+  const MAX_BULK_DELETE = 10;
+
+  const [staffForm, setStaffForm] = useState({
+    email: '',
+    password: '',
+    fullName: '',
+    role: 'admin' as 'admin' | 'manager',
+    currentAdminPassword: '',
+  });
+  const [staffSaving, setStaffSaving] = useState(false);
 
   const [storedUser, setStoredUser] = useState(() => {
     try {
+      localStorage.removeItem('demo_mode');
       const s = localStorage.getItem('admin_user') || localStorage.getItem('customer_user');
       return s ? JSON.parse(s) : null;
     } catch {
       return null;
     }
   });
-
-  const demoMode = isDemoAdminToken(
-    localStorage.getItem('admin_token') || localStorage.getItem('customer_token'),
-  );
 
   useEffect(() => {
     const role = storedUser?.role;
@@ -157,22 +152,7 @@ export function AdminDashboardPage() {
     setProfileName(storedUser.fullName || '');
   }, [navigate, storedUser]);
 
-  const loadDemoDashboard = () => {
-    setProducts(loadDemoProducts() as Product[]);
-    setCategories(loadDemoCategories() as Category[]);
-    setOrders(loadDemoOrders() as Order[]);
-    setUsers(loadDemoUsers() as UserRow[]);
-    setHeroVideoUrl('');
-  };
-
   const fetchAll = async () => {
-    if (
-      isDemoAdminToken(localStorage.getItem('admin_token') || localStorage.getItem('customer_token')) ||
-      localStorage.getItem('demo_mode') === '1'
-    ) {
-      loadDemoDashboard();
-      return;
-    }
     const h = { headers: authHeaders() };
     try {
       const [p, c, o, u, s] = await Promise.all([
@@ -219,11 +199,13 @@ export function AdminDashboardPage() {
 
   const openNewProduct = () => {
     setEditingProd(null);
+    const parentCats = categories.filter((c) => !c.parent_id);
     setProdForm({
       name: '',
       price: 0,
       stock: 10,
-      category: categories[0]?.slug || '',
+      category: parentCats[0]?.slug || categories[0]?.slug || '',
+      subcategory: '',
       description: '',
       size: '',
       imageUrl: '',
@@ -241,10 +223,6 @@ export function AdminDashboardPage() {
     setViewingProd(null);
     setMsg('');
   };
-
-  const inDemo = () =>
-    demoMode ||
-    isDemoAdminToken(localStorage.getItem('admin_token') || localStorage.getItem('customer_token'));
 
   const saveProd = async () => {
     setLoading(true);
@@ -266,8 +244,7 @@ export function AdminDashboardPage() {
         return;
       }
 
-      const payload: DemoProduct & { subcategory?: string } = {
-        id: editingProd || `demo-prod-${Date.now()}`,
+      const body = {
         name: prodForm.name.trim(),
         description: prodForm.description || '',
         price: Number(prodForm.price) || 0,
@@ -276,33 +253,21 @@ export function AdminDashboardPage() {
         stock: Number(prodForm.stock) || 0,
         size: prodForm.size || undefined,
         is_active: prodForm.is_active ?? true,
-        imageUrl: prodForm.imageUrl,
+        imageUrl: prodForm.imageUrl || prodForm.imageUrls?.[0] || '',
         imageUrls: prodForm.imageUrls || [],
       };
-      if (!payload.imageUrl && payload.imageUrls?.length) {
-        payload.imageUrl = payload.imageUrls[0];
-      }
+      if (!body.imageUrl && body.imageUrls.length) body.imageUrl = body.imageUrls[0];
 
-      if (inDemo()) {
-        const list = loadDemoProducts();
-        const next = editingProd
-          ? list.map((p) => (p.id === editingProd ? { ...p, ...payload, id: editingProd } : p))
-          : [payload, ...list];
-        saveDemoProducts(next);
-        setProducts(next as Product[]);
+      if (editingProd) {
+        await axios.put(`/api/products/${editingProd}`, body, { headers: authHeaders() });
       } else {
-        const { id: _id, ...body } = payload;
-        if (editingProd) {
-          await axios.put(`/api/products/${editingProd}`, body, { headers: authHeaders() });
-        } else {
-          await axios.post('/api/products', body, { headers: authHeaders() });
-        }
-        await fetchAll();
+        await axios.post('/api/products', body, { headers: authHeaders() });
       }
+      await fetchAll();
       setProdForm({});
       setEditingProd(null);
       setShowProdModal(false);
-      setMsg(inDemo() ? 'Product saved (demo / local)' : 'Product saved');
+      setMsg('Product saved to database');
       setTab('products');
     } catch (e: any) {
       setMsg(e?.response?.data?.message || 'Could not save product');
@@ -313,18 +278,51 @@ export function AdminDashboardPage() {
   const deleteProd = async (id: string) => {
     if (!confirm('Delete this product?')) return;
     try {
-      if (inDemo()) {
-        const next = loadDemoProducts().filter((p) => p.id !== id);
-        saveDemoProducts(next);
-        setProducts(next as Product[]);
-      } else {
-        await axios.delete(`/api/products/${id}`, { headers: authHeaders() });
-        await fetchAll();
-      }
+      await axios.delete(`/api/products/${id}`, { headers: authHeaders() });
+      setSelectedProductIds((prev) => prev.filter((x) => x !== id));
+      await fetchAll();
       setMsg('Product deleted');
     } catch {
       setMsg('Error deleting product');
     }
+  };
+
+  const toggleSelectProduct = (id: string) => {
+    setSelectedProductIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= MAX_BULK_DELETE) {
+        setMsg(`Select up to ${MAX_BULK_DELETE} products to delete at once`);
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const deleteSelectedProducts = async () => {
+    const n = selectedProductIds.length;
+    if (n < 1) {
+      setMsg('Select products to delete (up to 10)');
+      return;
+    }
+    if (n > MAX_BULK_DELETE) {
+      setMsg(`You can delete at most ${MAX_BULK_DELETE} products at once`);
+      return;
+    }
+    if (!confirm(`Delete ${n} selected product${n === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    setLoading(true);
+    setMsg('');
+    try {
+      await Promise.all(
+        selectedProductIds.map((id) => axios.delete(`/api/products/${id}`, { headers: authHeaders() })),
+      );
+      setSelectedProductIds([]);
+      await fetchAll();
+      setMsg(`${n} product${n === 1 ? '' : 's'} deleted`);
+    } catch (e: any) {
+      setMsg(e?.response?.data?.message || 'Could not delete some products');
+      await fetchAll();
+    }
+    setLoading(false);
   };
 
   const saveCat = async () => {
@@ -339,24 +337,16 @@ export function AdminDashboardPage() {
         return;
       }
       const body = { name, slug, parent_id: catForm.parent_id || null };
-      if (inDemo()) {
-        const list = loadDemoCategories();
-        const next: DemoCategory[] = editingCat
-          ? list.map((c) => (c.id === editingCat ? { ...c, ...body } : c))
-          : [{ id: `demo-cat-${Date.now()}`, ...body }, ...list];
-        saveDemoCategories(next);
-        setCategories(next as Category[]);
-      } else if (editingCat) {
+      if (editingCat) {
         await axios.put(`/api/categories/${editingCat}`, body, { headers: authHeaders() });
-        await fetchAll();
       } else {
         await axios.post('/api/categories', body, { headers: authHeaders() });
-        await fetchAll();
       }
+      await fetchAll();
       setCatForm({ name: '', slug: '', parent_id: '' });
       setEditingCat(null);
       setSlugManual(false);
-      setMsg(inDemo() ? 'Category saved (demo / local)' : 'Category saved');
+      setMsg('Category saved');
     } catch (e: any) {
       setMsg(e?.response?.data?.message || 'Could not save category');
     }
@@ -366,14 +356,8 @@ export function AdminDashboardPage() {
   const deleteCat = async (id: string) => {
     if (!confirm('Delete this category? Products using it may need a new category.')) return;
     try {
-      if (inDemo()) {
-        const next = loadDemoCategories().filter((c) => c.id !== id);
-        saveDemoCategories(next);
-        setCategories(next);
-      } else {
-        await axios.delete(`/api/categories/${id}`, { headers: authHeaders() });
-        await fetchAll();
-      }
+      await axios.delete(`/api/categories/${id}`, { headers: authHeaders() });
+      await fetchAll();
       setMsg('Category deleted');
     } catch {
       setMsg('Error deleting category');
@@ -382,14 +366,8 @@ export function AdminDashboardPage() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      if (inDemo()) {
-        const next = (loadDemoOrders() as Order[]).map((o) => (o.id === id ? { ...o, status } : o));
-        saveDemoOrders(next);
-        setOrders(next);
-      } else {
-        await axios.put(`/api/orders/${id}/status`, { status }, { headers: authHeaders() });
-        await fetchAll();
-      }
+      await axios.put(`/api/orders/${id}/status`, { status }, { headers: authHeaders() });
+      await fetchAll();
     } catch {
       setMsg('Error updating status');
     }
@@ -397,17 +375,9 @@ export function AdminDashboardPage() {
 
   const changeRole = async (id: string, role: string) => {
     try {
-      if (inDemo()) {
-        const next = (loadDemoUsers() as UserRow[]).map((u) => (u.id === id ? { ...u, role } : u));
-        saveDemoUsers(next);
-        setUsers(next);
-        return;
-      }
       const body: { role: string; currentAdminPassword?: string } = { role };
       if (role === 'admin') {
-        const pwd = window.prompt(
-          'Confirm your admin password to grant administrator access:',
-        );
+        const pwd = window.prompt('Confirm your admin password to grant administrator access:');
         if (!pwd) {
           setMsg('Role change cancelled — password required to create admins');
           await fetchAll();
@@ -426,11 +396,7 @@ export function AdminDashboardPage() {
   };
 
   const resetPassword = async (id: string) => {
-    if (inDemo()) {
-      setMsg('Password reset skipped in demo mode');
-      return;
-    }
-    const pwd = prompt('Enter new password (min 6 characters):');
+    const pwd = prompt('Enter new password (min 8 characters):');
     if (!pwd) return;
     try {
       await axios.put(`/api/auth/users/${id}/reset-password`, { password: pwd }, { headers: authHeaders() });
@@ -440,34 +406,64 @@ export function AdminDashboardPage() {
     }
   };
 
+  const createStaff = async () => {
+    setStaffSaving(true);
+    setMsg('');
+    try {
+      if (!staffForm.email.trim() || !staffForm.password || !staffForm.currentAdminPassword) {
+        setMsg('Email, new password, and your admin password are required');
+        setStaffSaving(false);
+        return;
+      }
+      if (staffForm.password.length < 8) {
+        setMsg('New admin password must be at least 8 characters');
+        setStaffSaving(false);
+        return;
+      }
+      const roleLabel = staffForm.role === 'admin' ? 'Admin' : 'Manager';
+      await axios.post(
+        '/api/auth/admins',
+        {
+          email: staffForm.email.trim().toLowerCase(),
+          password: staffForm.password,
+          fullName: staffForm.fullName.trim() || undefined,
+          role: staffForm.role,
+          currentAdminPassword: staffForm.currentAdminPassword,
+        },
+        { headers: authHeaders() },
+      );
+      setStaffForm({
+        email: '',
+        password: '',
+        fullName: '',
+        role: 'admin',
+        currentAdminPassword: '',
+      });
+      setMsg(`${roleLabel} account created`);
+      setTab('users');
+      await fetchAll();
+    } catch (e: any) {
+      setMsg(e?.response?.data?.message || 'Could not create staff account');
+    }
+    setStaffSaving(false);
+  };
+
   const uploadFiles = async (files: FileList | null) => {
     if (!files?.length) return;
     setUploading(true);
     setMsg('');
     try {
       const uploaded: string[] = [];
-      if (inDemo()) {
-        for (let i = 0; i < files.length; i++) {
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result || ''));
-            reader.onerror = reject;
-            reader.readAsDataURL(files[i]);
-          });
-          if (dataUrl) uploaded.push(dataUrl);
-        }
-      } else {
-        for (let i = 0; i < files.length; i++) {
-          const fd = new FormData();
-          fd.append('file', files[i]);
-          const url = editingProd
-            ? `/api/products/upload-image?productId=${editingProd}`
-            : '/api/products/upload-image';
-          const res = await axios.post(url, fd, {
-            headers: { ...authHeaders(), 'Content-Type': 'multipart/form-data' },
-          });
-          if (res.data?.imageUrl) uploaded.push(res.data.imageUrl);
-        }
+      for (let i = 0; i < files.length; i++) {
+        const fd = new FormData();
+        fd.append('file', files[i]);
+        const url = editingProd
+          ? `/api/products/upload-image?productId=${editingProd}`
+          : '/api/products/upload-image';
+        const res = await axios.post(url, fd, {
+          headers: { ...authHeaders(), 'Content-Type': 'multipart/form-data' },
+        });
+        if (res.data?.imageUrl) uploaded.push(res.data.imageUrl);
       }
       if (uploaded.length) {
         setProdForm((s) => {
@@ -475,7 +471,7 @@ export function AdminDashboardPage() {
           const combined = [...existing, ...uploaded];
           return { ...s, imageUrls: combined, imageUrl: s.imageUrl || combined[0] };
         });
-        setMsg(`${uploaded.length} image(s) added${inDemo() ? ' (demo / local)' : ''}`);
+        setMsg(`${uploaded.length} image(s) uploaded`);
       }
     } catch (e: any) {
       setMsg(e?.response?.data?.message || 'Upload failed');
@@ -486,14 +482,6 @@ export function AdminDashboardPage() {
   const saveProfile = async () => {
     if (!storedUser) return;
     try {
-      if (inDemo()) {
-        const next = { ...storedUser, fullName: profileName };
-        localStorage.setItem('admin_user', JSON.stringify(next));
-        localStorage.setItem('customer_user', JSON.stringify(next));
-        setStoredUser(next);
-        setMsg('Profile updated (demo / local)');
-        return;
-      }
       await axios.put(`/api/auth/users/${storedUser.id}`, { fullName: profileName }, { headers: authHeaders() });
       const key = localStorage.getItem('admin_user') ? 'admin_user' : 'customer_user';
       const next = { ...storedUser, fullName: profileName };
@@ -737,15 +725,39 @@ export function AdminDashboardPage() {
                 </button>
               </div>
 
+              {selectedProductIds.length > 0 && (
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-red-800">
+                    {selectedProductIds.length} selected (max {MAX_BULK_DELETE})
+                  </p>
+                  <div className="flex gap-2">
+                    <button type="button" className={btnGhost} onClick={() => setSelectedProductIds([])}>
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={deleteSelectedProducts}
+                      className="inline-flex items-center rounded-full bg-red-600 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      Delete selected
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className={`${cardClass} overflow-hidden`}>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[640px] text-sm">
                     <thead>
                       <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
+                        <th className="w-10 px-3 py-3">
+                          <span className="sr-only">Select</span>
+                        </th>
                         <th className="px-4 py-3">Product</th>
                         <th className="px-4 py-3">Category</th>
                         <th className="px-4 py-3">Price</th>
-                        <th className="px-4 py-3">Stock</th>
+                        <th className="px-4 py-3">Items</th>
                         <th className="px-4 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -754,6 +766,15 @@ export function AdminDashboardPage() {
                         .slice((productsPage - 1) * pageSize, productsPage * pageSize)
                         .map((p) => (
                           <tr key={p.id} className="border-b border-neutral-100 hover:bg-neutral-50/80">
+                            <td className="px-3 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedProductIds.includes(p.id)}
+                                onChange={() => toggleSelectProduct(p.id)}
+                                className="h-4 w-4 rounded border-neutral-300"
+                                aria-label={`Select ${p.name}`}
+                              />
+                            </td>
                             <td className="px-4 py-3">
                               <button
                                 type="button"
@@ -781,8 +802,16 @@ export function AdminDashboardPage() {
                             </td>
                             <td className="px-4 py-3 font-semibold">{formatRwf(p.price ?? 0)}</td>
                             <td className="px-4 py-3">
-                              <span className={(p.stock || 0) < 5 ? 'font-semibold text-red-600' : 'text-neutral-600'}>
-                                {p.stock ?? 0}
+                              <span
+                                className={
+                                  (p.stock ?? 0) <= 0
+                                    ? 'font-semibold text-red-600'
+                                    : (p.stock || 0) < 5
+                                      ? 'font-semibold text-amber-600'
+                                      : 'text-neutral-600'
+                                }
+                              >
+                                {(p.stock ?? 0) <= 0 ? 'Out' : p.stock}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right">
@@ -803,7 +832,7 @@ export function AdminDashboardPage() {
                         ))}
                       {filteredProducts.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="px-4 py-12 text-center text-neutral-400">
+                          <td colSpan={6} className="px-4 py-12 text-center text-neutral-400">
                             No products yet. Click “Add product” to create one.
                           </td>
                         </tr>
@@ -1133,6 +1162,80 @@ export function AdminDashboardPage() {
           {/* Settings */}
           {tab === 'settings' && (
             <div className="mx-auto max-w-3xl space-y-4">
+              {storedUser?.role === 'admin' && (
+                <div className={`${cardClass} p-5 sm:p-6`}>
+                  <h3 className="text-base font-bold">Add admin or manager</h3>
+                  <p className="mt-1 text-sm text-neutral-500">
+                    Create another staff account. You must confirm with your current admin password.
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className={labelClass}>Full name</label>
+                      <input
+                        className={inputClass}
+                        placeholder="New staff name"
+                        value={staffForm.fullName}
+                        onChange={(e) => setStaffForm({ ...staffForm, fullName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Email *</label>
+                      <input
+                        className={inputClass}
+                        type="email"
+                        placeholder="admin2@example.com"
+                        value={staffForm.email}
+                        onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Role *</label>
+                      <select
+                        className={inputClass}
+                        value={staffForm.role}
+                        onChange={(e) =>
+                          setStaffForm({ ...staffForm, role: e.target.value as 'admin' | 'manager' })
+                        }
+                      >
+                        <option value="admin">Admin (full access)</option>
+                        <option value="manager">Manager (catalog & orders)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>New password * (min 8)</label>
+                      <input
+                        className={inputClass}
+                        type="password"
+                        autoComplete="new-password"
+                        value={staffForm.password}
+                        onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Your admin password *</label>
+                      <input
+                        className={inputClass}
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="Confirm it is you"
+                        value={staffForm.currentAdminPassword}
+                        onChange={(e) =>
+                          setStaffForm({ ...staffForm, currentAdminPassword: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`${btnPrimary} mt-4`}
+                    disabled={staffSaving}
+                    onClick={createStaff}
+                  >
+                    {staffSaving ? 'Creating…' : 'Create staff account'}
+                  </button>
+                </div>
+              )}
+
               <div className={`${cardClass} p-5 sm:p-6`}>
                 <h3 className="text-base font-bold">Payment details for customers</h3>
                 <p className="mt-1 text-sm text-neutral-500">
@@ -1320,14 +1423,18 @@ export function AdminDashboardPage() {
                       )}
                     </div>
                     <div>
-                      <label className={labelClass}>Stock</label>
+                      <label className={labelClass}>Items in stock *</label>
                       <input
                         className={inputClass}
                         type="number"
                         min={0}
+                        placeholder="e.g. 10"
                         value={prodForm.stock ?? ''}
                         onChange={(e) => setProdForm({ ...prodForm, stock: parseInt(e.target.value, 10) || 0 })}
                       />
+                      <p className="mt-1 text-[11px] text-neutral-400">
+                        Decreases automatically when customers order. 0 = sold out on the shop.
+                      </p>
                     </div>
                     <div>
                       <label className={labelClass}>Category *</label>
@@ -1402,71 +1509,61 @@ export function AdminDashboardPage() {
                   </div>
 
                   <div>
-                    <label className={labelClass}>Images</label>
-                    <div className="flex flex-wrap gap-2">
-                      {gallery.map((u, i) => (
-                        <div key={`${u}-${i}`} className="group relative h-20 w-20 overflow-hidden rounded-xl border border-neutral-200">
-                          <img src={u} alt="" className="h-full w-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = [...gallery];
-                              next.splice(i, 1);
-                              setProdForm({
-                                ...prodForm,
-                                imageUrls: next,
-                                imageUrl: prodForm.imageUrl === u ? next[0] || '' : prodForm.imageUrl,
-                              });
-                            }}
-                            className="absolute inset-0 flex items-center justify-center bg-black/60 text-[10px] font-bold text-white opacity-0 transition group-hover:opacity-100"
+                    <label className={labelClass}>Product photos</label>
+                    <label className="mb-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 bg-neutral-50 px-4 py-6 text-center transition hover:border-black hover:bg-white">
+                      <span className="text-2xl leading-none text-neutral-400">+</span>
+                      <span className="mt-2 text-sm font-semibold text-black">
+                        {uploading ? 'Uploading…' : 'Tap to add photos'}
+                      </span>
+                      <span className="mt-1 text-[11px] text-neutral-500">
+                        JPG, PNG or WebP · first photo is the shop thumbnail
+                      </span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        multiple
+                        accept="image/*"
+                        disabled={uploading}
+                        onChange={(e) => {
+                          uploadFiles(e.target.files);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {gallery.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {gallery.map((u, i) => (
+                          <div
+                            key={`${u}-${i}`}
+                            className={`group relative h-20 w-20 overflow-hidden rounded-xl border-2 ${
+                              i === 0 ? 'border-black' : 'border-neutral-200'
+                            }`}
                           >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                      <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 text-neutral-500 hover:border-black hover:text-black">
-                        <span className="text-lg leading-none">+</span>
-                        <span className="text-[10px] font-semibold">{uploading ? '…' : 'Upload'}</span>
-                        <input
-                          type="file"
-                          className="hidden"
-                          multiple
-                          accept="image/*"
-                          disabled={uploading}
-                          onChange={(e) => {
-                            uploadFiles(e.target.files);
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
-                    </div>
-                    <p className="mt-2 text-[11px] text-neutral-400">First image is the shop thumbnail. Upload JPG/PNG/WebP.</p>
-
-                    <details className="mt-3">
-                      <summary className="cursor-pointer text-xs font-semibold text-neutral-500">Or use a sample image</summary>
-                      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                        {Object.entries(SAMPLE_IMAGES)
-                          .filter(([k]) => k !== 'hero' && k !== 'placeholder')
-                          .map(([key, url]) => (
+                            <img src={u} alt="" className="h-full w-full object-cover" />
+                            {i === 0 && (
+                              <span className="absolute left-1 top-1 rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                                Cover
+                              </span>
+                            )}
                             <button
-                              key={key}
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
+                                const next = [...gallery];
+                                next.splice(i, 1);
                                 setProdForm({
                                   ...prodForm,
-                                  imageUrl: url,
-                                  imageUrls: [url, ...(prodForm.imageUrls || []).filter((u) => u !== url)].slice(0, 6),
-                                })
-                              }
-                              className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 ${
-                                prodForm.imageUrl === url ? 'border-black' : 'border-transparent'
-                              }`}
+                                  imageUrls: next,
+                                  imageUrl: prodForm.imageUrl === u ? next[0] || '' : prodForm.imageUrl,
+                                });
+                              }}
+                              className="absolute inset-0 flex items-center justify-center bg-black/60 text-[10px] font-bold text-white opacity-0 transition group-hover:opacity-100"
                             >
-                              <img src={url} alt={key} className="h-full w-full object-cover" />
+                              Remove
                             </button>
-                          ))}
+                          </div>
+                        ))}
                       </div>
-                    </details>
+                    )}
 
                     <div className="mt-3">
                       <label className={labelClass}>Or paste image URL</label>

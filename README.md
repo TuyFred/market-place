@@ -234,7 +234,7 @@ Vite proxy forwards `/api/*` requests to the backend (`http://localhost:4000`), 
 ### Frontend environment variables (`frontend/.env`)
 
 - **`VITE_WHATSAPP_NUMBER`**
-  - Your WhatsApp number for orders, e.g. `+250793093612`.
+  - Your WhatsApp number for orders: `+13653369344`.
 - **`VITE_SUPABASE_URL`** (optional)
 - **`VITE_SUPABASE_ANON_KEY`** (optional)
 

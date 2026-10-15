@@ -19,7 +19,7 @@ Every push to `main` rebuilds and publishes the shop automatically.
 | Name | Example |
 |------|---------|
 | `VITE_API_URL` | `https://your-api.onrender.com` |
-| `VITE_WHATSAPP_NUMBER` | `+250784017000` |
+| `VITE_WHATSAPP_NUMBER` | `+13653369344` |
 | `VITE_SUPABASE_URL` | your Supabase URL |
 | `VITE_SUPABASE_ANON_KEY` | your anon key |
 

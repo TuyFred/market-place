@@ -127,6 +127,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
             phone: phone.trim(),
             address: address.trim(),
             productId: line.product.id,
+            quantity: Math.max(1, Number(line.quantity) || 1),
             notes,
             paymentMethod: method,
             paymentReference: paymentReference.trim(),

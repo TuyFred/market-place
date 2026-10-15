@@ -1,7 +1,7 @@
 /** Shop WhatsApp — override with VITE_WHATSAPP_NUMBER in .env */
 const ENV_NUMBER = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined)?.trim();
 
-export const CONTACT_RAW = ENV_NUMBER || '+250784017000';
+export const CONTACT_RAW = ENV_NUMBER || '+13653369344';
 export const CONTACT_DISPLAY = formatDisplay(CONTACT_RAW);
 export const INQUIRY_EMAIL = 'josephnkurunziza642@gmail.com';
 

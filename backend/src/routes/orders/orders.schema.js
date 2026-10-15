@@ -10,6 +10,7 @@ export const createOrderSchema = {
       phone: { type: 'string' },
       address: { type: 'string' },
       productId: { type: 'string' },
+      quantity: { type: 'integer', minimum: 1, maximum: 99 },
       notes: { type: 'string' },
       paymentMethod: {
         type: 'string',

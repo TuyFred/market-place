@@ -8,10 +8,10 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { CheckoutProvider } from './context/CheckoutContext';
 
-const DEFAULT_PROD_API = 'https://market-place-z0w0.onrender.com';
-axios.defaults.baseURL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? DEFAULT_PROD_API : '/');
+// Same-origin `/api` by default (Vercel rewrite → Render). Avoids CORS on www.afroluxo.com.
+// Set VITE_API_URL only when there is no proxy (e.g. direct API host).
+const configuredApi = (import.meta.env.VITE_API_URL || '').trim();
+axios.defaults.baseURL = configuredApi || '/';
 
 // Quiet expected empty/demo misses in production network noise
 axios.interceptors.response.use(

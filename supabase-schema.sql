@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   customer_phone    TEXT NOT NULL,
   customer_address  TEXT NOT NULL,
   product_id        UUID REFERENCES public.products(id) ON DELETE SET NULL,
+  quantity          INTEGER NOT NULL DEFAULT 1,
   notes             TEXT,
   proof_url         TEXT,
   user_id           UUID,
@@ -78,6 +79,9 @@ CREATE TABLE IF NOT EXISTS public.orders (
                     CHECK (status IN ('pending','confirmed','shipped','delivered','cancelled')),
   created_at        TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS quantity INTEGER NOT NULL DEFAULT 1;
 
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 

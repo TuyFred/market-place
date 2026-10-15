@@ -290,6 +290,12 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             )}
           </div>
 
+          {!soldOut && typeof product.stock === 'number' && product.stock > 0 && product.stock <= 5 && (
+            <p className="text-[9px] font-medium text-amber-700 sm:text-[10px]">
+              Only {product.stock} left
+            </p>
+          )}
+
           {soldOut ? (
             <button
               type="button"

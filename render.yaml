@@ -20,4 +20,6 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: CORS_ORIGIN
-        sync: false
+        value: https://www.afroluxo.com,https://afroluxo.com
+      - key: FRONTEND_URL
+        value: https://www.afroluxo.com

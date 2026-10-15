@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CONTACT_RAW } from '../../utils/whatsapp';
 
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '';
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '+13653369344';
 
 export function WhatsAppFloating() {
   const [digits, setDigits] = useState('');

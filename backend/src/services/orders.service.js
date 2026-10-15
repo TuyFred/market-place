@@ -13,6 +13,12 @@ const VALID_STATUSES = [
 
 const VALID_PAYMENT_STATUSES = ['awaiting_payment', 'payment_review', 'paid', 'rejected'];
 
+function parseQty(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(Math.floor(n), 99);
+}
+
 export async function createOrder(payload, user) {
   if (!supabaseAdmin) {
     throw notConfiguredError;
@@ -26,15 +32,63 @@ export async function createOrder(payload, user) {
     notes,
     paymentMethod,
     paymentReference,
-    paymentStatus
+    paymentStatus,
+    quantity: rawQty
   } = payload;
 
+  const quantity = parseQty(rawQty);
   const isDemo = typeof productId === 'string' && productId.startsWith('demo-');
+
+  if (!isDemo && productId) {
+    const { data: product, error: prodErr } = await supabaseAdmin
+      .from('products')
+      .select('id, name, stock, is_active, price')
+      .eq('id', productId)
+      .single();
+
+    if (prodErr || !product) {
+      const err = new Error('Product not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (product.is_active === false) {
+      const err = new Error('This product is no longer available');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const stock = Number(product.stock ?? 0);
+    if (stock < quantity) {
+      const err = new Error(
+        stock <= 0
+          ? `"${product.name}" is out of stock`
+          : `Only ${stock} left for "${product.name}"`
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const nextStock = stock - quantity;
+    const { error: stockErr } = await supabaseAdmin
+      .from('products')
+      .update({ stock: nextStock })
+      .eq('id', productId)
+      .gte('stock', quantity);
+
+    if (stockErr) {
+      const err = new Error(stockErr.message || 'Could not update stock');
+      err.statusCode = 400;
+      throw err;
+    }
+  }
+
   const row = {
     customer_name: name,
     customer_phone: phone,
     customer_address: address,
     product_id: isDemo ? null : productId,
+    quantity,
     notes: isDemo ? `${notes || ''} [demo:${productId}]`.trim() : notes || null,
     payment_method: paymentMethod || null,
     payment_reference: paymentReference || null,
@@ -47,9 +101,33 @@ export async function createOrder(payload, user) {
     row.user_email = user.email;
   }
 
-  const { data, error } = await supabaseAdmin.from('orders').insert(row).select().single();
+  let { data, error } = await supabaseAdmin.from('orders').insert(row).select().single();
+
+  // Older DBs without quantity column — retry without it
+  if (error && /quantity/i.test(error.message || '')) {
+    const { quantity: _q, ...legacy } = row;
+    ({ data, error } = await supabaseAdmin.from('orders').insert(legacy).select().single());
+  }
 
   if (error) {
+    // Best-effort restore stock if order insert failed after decrement
+    if (!isDemo && productId) {
+      try {
+        const { data: p } = await supabaseAdmin
+          .from('products')
+          .select('stock')
+          .eq('id', productId)
+          .single();
+        if (p) {
+          await supabaseAdmin
+            .from('products')
+            .update({ stock: Number(p.stock || 0) + quantity })
+            .eq('id', productId);
+        }
+      } catch {
+        /* ignore restore failure */
+      }
+    }
     const err = new Error(error.message);
     err.statusCode = 400;
     throw err;
@@ -65,7 +143,7 @@ export async function listOrders() {
 
   const { data, error } = await supabaseAdmin
     .from('orders')
-    .select('*, products(name, price, category, imageUrl)')
+    .select('*, products(name, price, category, imageUrl, stock)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -97,10 +175,31 @@ export async function listOrdersForUser(user) {
   return data;
 }
 
+async function restoreStockForOrder(order) {
+  if (!order?.product_id) return;
+  const qty = parseQty(order.quantity || 1);
+  const { data: p } = await supabaseAdmin
+    .from('products')
+    .select('stock')
+    .eq('id', order.product_id)
+    .single();
+  if (!p) return;
+  await supabaseAdmin
+    .from('products')
+    .update({ stock: Number(p.stock || 0) + qty })
+    .eq('id', order.product_id);
+}
+
 export async function updateOrderStatus(id, status, paymentStatus) {
   if (!supabaseAdmin) {
     throw notConfiguredError;
   }
+
+  const { data: existing } = await supabaseAdmin
+    .from('orders')
+    .select('id, product_id, quantity, status')
+    .eq('id', id)
+    .single();
 
   const updates = {};
   if (status) {
@@ -110,7 +209,6 @@ export async function updateOrderStatus(id, status, paymentStatus) {
       throw err;
     }
     updates.status = status;
-    // Sync payment when admin confirms
     if (status === 'confirmed') updates.payment_status = 'paid';
     if (status === 'payment_review') updates.payment_status = 'payment_review';
     if (status === 'cancelled') updates.payment_status = 'rejected';
@@ -136,6 +234,9 @@ export async function updateOrderStatus(id, status, paymentStatus) {
     throw err;
   }
 
+  const becomingCancelled =
+    updates.status === 'cancelled' && existing && existing.status !== 'cancelled';
+
   const { data, error } = await supabaseAdmin
     .from('orders')
     .update(updates)
@@ -147,6 +248,14 @@ export async function updateOrderStatus(id, status, paymentStatus) {
     const err = new Error(error.message);
     err.statusCode = 400;
     throw err;
+  }
+
+  if (becomingCancelled && existing) {
+    try {
+      await restoreStockForOrder(existing);
+    } catch {
+      /* non-fatal */
+    }
   }
 
   return data;

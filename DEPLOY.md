@@ -20,7 +20,7 @@ CORS_ORIGIN=*
 
 `frontend/.env`:
 ```
-VITE_WHATSAPP_NUMBER=+250XXXXXXXXX
+VITE_WHATSAPP_NUMBER=+13653369344
 VITE_SUPABASE_URL=https://dvhsydnoownpiaufeohc.supabase.co
 VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
@@ -66,7 +66,8 @@ UI: http://localhost:5173 (Vite proxies `/api` → `:4000`)
 3. Set env vars on Render (Dashboard → Environment):
    - `SUPABASE_URL` = same as local
    - `SUPABASE_SERVICE_ROLE_KEY` = service_role key (never the anon key)
-   - `CORS_ORIGIN` = your Vercel URL, e.g. `https://your-app.vercel.app` (comma-separate multiple)
+   - `CORS_ORIGIN` = `https://www.afroluxo.com,https://afroluxo.com` (comma-separate; include www)
+   - `FRONTEND_URL` = `https://www.afroluxo.com`
    - `NODE_ENV` = `production`
    - `PORT` = `4000` (Render may override; app reads `process.env.PORT`)
 4. After deploy, open `https://afroluxo-by-asi-api.onrender.com/health`  

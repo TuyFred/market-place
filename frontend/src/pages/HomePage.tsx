@@ -7,6 +7,7 @@ type GridCols = 2 | 4;
 
 export function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [availability, setAvailability] = useState<AvailabilityFilter>('all');
   const [priceOpen, setPriceOpen] = useState(false);
   const [availOpen, setAvailOpen] = useState(false);
@@ -18,14 +19,23 @@ export function HomePage() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
     axios
       .get<Product[]>('/api/products')
       .then((res) => {
+        if (cancelled) return;
         setProducts((res.data || []).map((p) => ({ ...p })));
       })
       .catch(() => {
-        setProducts([]);
+        if (!cancelled) setProducts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const priceCeiling = useMemo(
@@ -258,15 +268,27 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className={`mt-4 sm:mt-8 ${gridClass}`}>
-          {list.map((product) => (
-            <div key={product.id} className="min-w-0">
-              <ProductCard product={product} variant="shop" />
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className={`mt-4 sm:mt-8 ${gridClass}`}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="min-w-0 animate-pulse">
+                <div className="aspect-[3/4] bg-neutral-100" />
+                <div className="mt-2 h-3 w-3/4 rounded bg-neutral-100" />
+                <div className="mt-1.5 h-3 w-1/3 rounded bg-neutral-100" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={`mt-4 sm:mt-8 ${gridClass}`}>
+            {list.map((product) => (
+              <div key={product.id} className="min-w-0">
+                <ProductCard product={product} variant="shop" />
+              </div>
+            ))}
+          </div>
+        )}
 
-        {list.length === 0 && (
+        {!loading && list.length === 0 && (
           <div className="py-20 text-center">
             <p className="text-base font-semibold text-black">No products yet</p>
             <p className="mt-1 text-sm text-neutral-500">
