@@ -165,11 +165,8 @@ CREATE POLICY "Authenticated users can upload order proofs"
   WITH CHECK (bucket_id = 'order-proofs' AND auth.role() = 'authenticated');
 
 -- ─────────────────────────────────────────────
--- 6. CLOTHES CATEGORIES ONLY
+-- 6. DEFAULT CLOTHES CATEGORIES
 -- ─────────────────────────────────────────────
-DELETE FROM public.categories
-WHERE slug IN ('children-shoes', 'women-shoes', 'small-bags', 'electronics');
-
 INSERT INTO public.categories (name, slug) VALUES
   ('African Traditional', 'african-traditional'),
   ('Ankara & Prints',     'ankara-prints'),
@@ -180,11 +177,6 @@ INSERT INTO public.categories (name, slug) VALUES
   ('Formal & Occasion',   'formal-occasion'),
   ('Street Style',        'street-style')
 ON CONFLICT (slug) DO NOTHING;
-
--- Soft-hide any leftover non-clothes products
-UPDATE public.products
-SET is_active = false
-WHERE category IN ('children-shoes', 'women-shoes', 'small-bags', 'electronics');
 
 -- ─────────────────────────────────────────────
 -- 7. ADMIN USER (Auth)

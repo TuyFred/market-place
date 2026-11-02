@@ -116,6 +116,10 @@ npm run create-bucket
 
 This verifies the public `product-images`, `order-proofs`, and `hero-videos` buckets and applies their upload size limits. Product photos are limited to 5 MB; they can also be omitted or supplied as a public image URL when saving a product.
 
+### Recover products hidden by the old category migration
+
+The older clothes-only SQL marked products in `children-shoes`, `women-shoes`, `small-bags`, and `electronics` inactive and removed those categories. The product rows were not deleted. If that migration was run and you want those products back in the shop, run `supabase-restore-products.sql` in the Supabase SQL Editor. The admin product list also includes inactive products so you can review and edit them.
+
 ### Swagger / API docs
 
 - UI: `GET http://localhost:4000/docs`

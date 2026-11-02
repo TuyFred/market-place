@@ -261,7 +261,7 @@ export function AdminDashboardPage() {
     const h = { headers: authHeaders() };
     try {
       const [p, c, o, u, s] = await Promise.all([
-        axios.get<Product[]>('/api/products', h),
+        axios.get<Product[]>('/api/products/admin', h),
         axios.get<Category[]>('/api/categories', h),
         axios.get<Order[]>('/api/orders', h).catch(() => ({ data: [] as Order[] })),
         axios.get<UserRow[]>('/api/auth/users', h).catch(() => ({ data: [] as UserRow[] })),
@@ -1149,6 +1149,11 @@ export function AdminDashboardPage() {
                                   <span className="block truncate text-xs text-neutral-500">
                                     {p.description || 'No description'}
                                   </span>
+                                  {p.is_active === false && (
+                                    <span className="mt-1 inline-flex rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600">
+                                      Hidden from shop
+                                    </span>
+                                  )}
                                 </span>
                               </button>
                             </td>

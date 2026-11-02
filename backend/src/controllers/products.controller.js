@@ -16,7 +16,8 @@ export async function getProductByIdHandler(request, reply) {
     const [withStats] = await attachReviewStats([product]);
     return sendSuccess(reply, 200, withStats || product);
   } catch (err) {
-    const statusCode = err.statusCode || 404;
+    const statusCode = err.statusCode || 500;
+    if (statusCode >= 500) request.log.error({ err, productId: request.params.id }, 'Could not load product');
     return sendError(reply, statusCode, err.message || 'Product not found');
   }
 }
@@ -29,6 +30,18 @@ export async function getProductsHandler(request, reply) {
   } catch (err) {
     const statusCode = err.statusCode || 500;
     return sendError(reply, statusCode, err.message);
+  }
+}
+
+export async function getAdminProductsHandler(request, reply) {
+  try {
+    const products = await listProducts(request.query, { includeInactive: true });
+    const withStats = await attachReviewStats(products);
+    return sendSuccess(reply, 200, withStats);
+  } catch (err) {
+    const statusCode = err.statusCode || 500;
+    request.log.error({ err }, 'Could not load admin products');
+    return sendError(reply, statusCode, err.message || 'Could not load products');
   }
 }
 

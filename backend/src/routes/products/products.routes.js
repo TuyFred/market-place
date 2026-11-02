@@ -1,4 +1,5 @@
 import {
+  getAdminProductsHandler,
   getProductsHandler,
   getProductByIdHandler,
   createProductHandler,
@@ -19,6 +20,14 @@ import { adminGuard } from '../../middlewares/admin.guard.js';
 
 export async function productsRoutes(fastify) {
   fastify.get('/', { schema: listProductsSchema }, getProductsHandler);
+  fastify.get(
+    '/admin',
+    {
+      preHandler: [authGuard, adminGuard],
+      schema: listProductsSchema
+    },
+    getAdminProductsHandler
+  );
 
   fastify.get('/:id', {}, getProductByIdHandler);
 
@@ -61,4 +70,3 @@ export async function productsRoutes(fastify) {
   // proxy product image to avoid CORS for frontend blob fetching
   fastify.get('/:id/image', {}, proxyProductImageHandler);
 }
-

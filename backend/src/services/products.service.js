@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/supabase.js';
 
 const notConfiguredError = new Error('Supabase is not configured');
+notConfiguredError.statusCode = 503;
 
 function normalizeProductInput(input = {}) {
   const imageUrls = Array.isArray(input.imageUrls)
@@ -26,47 +27,54 @@ function normalizeProductInput(input = {}) {
   return row;
 }
 
-export async function listProducts({ category, subcategory, search }) {
+export async function listProducts({ category, subcategory, search }, { includeInactive = false } = {}) {
   if (!supabaseAdmin) {
-    return [];
+    throw notConfiguredError;
   }
 
-  try {
-    let query = supabaseAdmin.from('products').select('*').eq('is_active', true);
+  let query = supabaseAdmin.from('products').select('*');
 
-    if (category) {
-      query = query.eq('category', category);
-    }
+  if (!includeInactive) {
+    query = query.eq('is_active', true);
+  }
 
-    if (subcategory) {
-      query = query.eq('subcategory', subcategory);
-    }
+  if (category) {
+    query = query.eq('category', category);
+  }
 
-    if (search) {
-      query = query.ilike('name', `%${search}%`);
-    }
+  if (subcategory) {
+    query = query.eq('subcategory', subcategory);
+  }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+  if (search) {
+    query = query.ilike('name', `%${search}%`);
+  }
 
-    if (error) {
-      // created_at may be missing on older schemas — retry without order
-      if (/created_at/i.test(error.message || '')) {
-        const retry = await supabaseAdmin.from('products').select('*').eq('is_active', true);
-        if (retry.error) {
-          console.warn('listProducts:', retry.error.message);
-          return [];
-        }
-        return retry.data || [];
+  const { data, error } = await query.order('created_at', { ascending: false });
+
+  if (error) {
+    // Older schemas may not have created_at; retry while preserving all filters.
+    if (/created_at/i.test(error.message || '')) {
+      let retry = supabaseAdmin.from('products').select('*');
+      if (!includeInactive) retry = retry.eq('is_active', true);
+      if (category) retry = retry.eq('category', category);
+      if (subcategory) retry = retry.eq('subcategory', subcategory);
+      if (search) retry = retry.ilike('name', `%${search}%`);
+      const result = await retry;
+      if (result.error) {
+        const retryError = new Error(result.error.message);
+        retryError.statusCode = 500;
+        throw retryError;
       }
-      console.warn('listProducts:', error.message);
-      return [];
+      return result.data || [];
     }
 
-    return data || [];
-  } catch (err) {
-    console.warn('listProducts unreachable:', err?.message || err);
-    return [];
+    const listError = new Error(error.message);
+    listError.statusCode = 500;
+    throw listError;
   }
+
+  return data || [];
 }
 
 export async function createProduct(product) {
@@ -151,7 +159,10 @@ export async function getProductById(id) {
   const { data, error } = await supabaseAdmin.from('products').select('*').eq('id', id).single();
   if (error) {
     const err = new Error(error.message);
-    err.statusCode = 404;
+    err.statusCode =
+      error.code === '22P02' || (error.code === 'PGRST116' && /0 rows/i.test(error.details || ''))
+        ? 404
+        : 500;
     throw err;
   }
   return data;

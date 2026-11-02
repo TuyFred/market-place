@@ -1,13 +1,4 @@
-﻿-- Migrate existing DB to clothes-only categories
--- Run in Supabase SQL Editor if you already ran the old schema
-
-UPDATE products
-SET is_active = false
-WHERE category IN ('children-shoes', 'women-shoes', 'small-bags', 'electronics');
-
-DELETE FROM categories WHERE slug IN (
-  'children-shoes', 'women-shoes', 'small-bags', 'electronics'
-);
+-- Add the clothes categories without deleting existing categories or hiding products.
 
 INSERT INTO categories (name, slug) VALUES
   ('African Traditional', 'african-traditional'),

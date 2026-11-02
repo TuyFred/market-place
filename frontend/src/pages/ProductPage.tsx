@@ -19,6 +19,8 @@ export function ProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<'not-found' | 'unavailable' | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [added, setAdded] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
@@ -34,6 +36,7 @@ export function ProductPage() {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
+    setLoadError(null);
 
     axios
       .get(`/api/products/${id}`)
@@ -52,10 +55,13 @@ export function ProductPage() {
           if (!cancelled) setRelated([]);
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!cancelled) {
           setProduct(null);
           setRelated([]);
+          setLoadError(
+            axios.isAxiosError(error) && error.response?.status === 404 ? 'not-found' : 'unavailable',
+          );
         }
       })
       .finally(() => {
@@ -65,7 +71,7 @@ export function ProductPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, retryCount]);
 
   if (loading) {
     return (
@@ -76,10 +82,27 @@ export function ProductPage() {
   if (!product) {
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <p className="text-lg font-semibold text-black">Product not found</p>
-        <p className="mt-2 text-sm text-neutral-500">This item may have been removed.</p>
+        <p className="text-lg font-semibold text-black">
+          {loadError === 'not-found' ? 'Product not found' : 'Product temporarily unavailable'}
+        </p>
+        <p className="mt-2 text-sm text-neutral-500">
+          {loadError === 'not-found'
+            ? 'This product may have been removed or its link may be incorrect.'
+            : 'We could not load this product right now. Your product data has not been changed.'}
+        </p>
         <div className="mt-6">
-          <AppBackButton to="/products" label="Back to catalog" />
+          <div className="flex flex-col justify-center gap-3 sm:flex-row">
+            {loadError === 'unavailable' && (
+              <button
+                type="button"
+                onClick={() => setRetryCount((count) => count + 1)}
+                className="min-h-11 rounded-full bg-black px-5 text-sm font-semibold text-white"
+              >
+                Try again
+              </button>
+            )}
+            <AppBackButton to="/products" label="Back to catalog" />
+          </div>
         </div>
       </div>
     );
@@ -92,6 +115,7 @@ export function ProductPage() {
         ? [product.imageUrl]
         : [SAMPLE_IMAGES.placeholder];
   const active = imgFailed ? SAMPLE_IMAGES.placeholder : images[currentIndex] || SAMPLE_IMAGES.placeholder;
+  const isSoldOut = typeof product.stock === 'number' && product.stock <= 0;
 
   const buyNow = () => {
     if (!isAuthenticated) {
@@ -150,6 +174,28 @@ export function ProductPage() {
             </p>
             <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{product.name}</h1>
             <p className="mt-3 text-xl font-semibold">{formatUsdFromRwf(product.price)}</p>
+            <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
+              {product.subcategory && (
+                <div className="rounded-lg bg-neutral-50 px-3 py-2">
+                  <dt className="text-xs text-neutral-500">Collection</dt>
+                  <dd className="mt-0.5 font-medium text-neutral-900">{product.subcategory}</dd>
+                </div>
+              )}
+              {product.size && (
+                <div className="rounded-lg bg-neutral-50 px-3 py-2">
+                  <dt className="text-xs text-neutral-500">Size</dt>
+                  <dd className="mt-0.5 font-medium text-neutral-900">{product.size}</dd>
+                </div>
+              )}
+              {typeof product.stock === 'number' && (
+                <div className="rounded-lg bg-neutral-50 px-3 py-2">
+                  <dt className="text-xs text-neutral-500">Availability</dt>
+                  <dd className={`mt-0.5 font-medium ${isSoldOut ? 'text-red-700' : 'text-emerald-700'}`}>
+                    {isSoldOut ? 'Sold out' : `${product.stock} in stock`}
+                  </dd>
+                </div>
+              )}
+            </dl>
             {(product.reviewCount || 0) > 0 && (
               <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-neutral-600">
                 <svg className="h-4 w-4 text-amber-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
@@ -170,9 +216,10 @@ export function ProductPage() {
               <button
                 type="button"
                 onClick={buyNow}
-                className="min-h-[48px] flex-1 bg-black px-6 text-sm font-semibold text-white"
+                disabled={isSoldOut}
+                className="min-h-[48px] flex-1 bg-black px-6 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-neutral-300"
               >
-                {added ? 'Added — checkout' : 'Order now'}
+                {isSoldOut ? 'Sold out' : added ? 'Added — checkout' : 'Order now'}
               </button>
               <button
                 type="button"
