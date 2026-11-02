@@ -22,6 +22,9 @@ export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [catsMap, setCatsMap] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || '';
   const search = searchParams.get('search') || '';
@@ -37,15 +40,19 @@ export function ProductsPage() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(false);
     const params: Record<string, string> = {};
     if (category) params.category = category;
     if (search) params.search = search;
 
     Promise.all([
-      axios.get('/api/categories'),
+      axios.get('/api/categories').catch(() => ({ data: [] })),
       axios.get<Product[]>('/api/products', { params: Object.keys(params).length ? params : undefined }),
     ])
       .then(([cRes, pRes]) => {
+        if (cancelled) return;
         const cats: { id: string; name: string; slug: string }[] = cRes.data || [];
         const map: Record<string, string> = {};
         cats.forEach((c) => {
@@ -58,9 +65,19 @@ export function ProductsPage() {
         setProducts(mapped);
       })
       .catch(() => {
-        setProducts([]);
+        if (!cancelled) {
+          setProducts([]);
+          setLoadError(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-  }, [category, search]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [category, search, retryCount]);
 
   const title = search
     ? `Results for "${search}"`
@@ -321,13 +338,42 @@ export function ProductsPage() {
           ))}
         </div>
 
-        {list.length === 0 && (
+        {loading && (
+          <div className="py-16 text-center text-sm text-neutral-500" role="status">
+            Loading products…
+          </div>
+        )}
+
+        {!loading && list.length === 0 && (
           <div className="py-16 text-center">
             <p className="text-base font-medium text-black">
-              {search ? 'Not found' : 'No products match these filters.'}
+              {loadError
+                ? 'We could not load the products'
+                : search
+                  ? 'Not found'
+                  : category
+                    ? 'No active products in this category'
+                    : 'No products match these filters.'}
             </p>
-            {search ? (
+            {loadError ? (
+              <>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Your saved products have not been changed. Check your connection and try again.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setRetryCount((count) => count + 1)}
+                  className="mt-4 min-h-11 rounded-full bg-black px-5 text-sm font-semibold text-white"
+                >
+                  Try again
+                </button>
+              </>
+            ) : search ? (
               <p className="mt-1 text-sm text-neutral-500">No products match “{search}”</p>
+            ) : category ? (
+              <Link to="/products" className="mt-3 inline-block text-sm font-semibold underline underline-offset-4">
+                View all products
+              </Link>
             ) : null}
           </div>
         )}

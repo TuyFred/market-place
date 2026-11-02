@@ -9,6 +9,8 @@ type GridCols = 2 | 4;
 export function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [availability, setAvailability] = useState<AvailabilityFilter>('all');
   const [priceOpen, setPriceOpen] = useState(false);
   const [availOpen, setAvailOpen] = useState(false);
@@ -22,6 +24,7 @@ export function HomePage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(false);
     axios
       .get<Product[]>('/api/products')
       .then((res) => {
@@ -29,7 +32,10 @@ export function HomePage() {
         setProducts((res.data || []).map((p) => ({ ...p })));
       })
       .catch(() => {
-        if (!cancelled) setProducts([]);
+        if (!cancelled) {
+          setProducts([]);
+          setLoadError(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -37,7 +43,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryCount]);
 
   const priceCeiling = useMemo(
     () => (products.length ? Math.max(...products.map((p) => p.price)) : 0),
@@ -292,10 +298,23 @@ export function HomePage() {
 
         {!loading && list.length === 0 && (
           <div className="py-20 text-center">
-            <p className="text-base font-semibold text-black">No products yet</p>
-            <p className="mt-1 text-sm text-neutral-500">
-              New items appear here when the store adds them.
+            <p className="text-base font-semibold text-black">
+              {loadError ? 'We could not load the products' : 'No active products yet'}
             </p>
+            <p className="mt-1 text-sm text-neutral-500">
+              {loadError
+                ? 'Your saved products have not been changed. Check your connection and try again.'
+                : 'New active products appear here as soon as they are saved.'}
+            </p>
+            {loadError && (
+              <button
+                type="button"
+                onClick={() => setRetryCount((count) => count + 1)}
+                className="mt-4 min-h-11 rounded-full bg-black px-5 text-sm font-semibold text-white"
+              >
+                Try again
+              </button>
+            )}
           </div>
         )}
       </div>
