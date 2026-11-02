@@ -12,7 +12,7 @@ import { clearAuthStorage, hardRedirectHome, isProtectedPath } from './utils/ses
 // Static hosts need the API's absolute URL; local development keeps using the Vite proxy.
 const configuredApi = (import.meta.env.VITE_API_URL || '').trim();
 axios.defaults.baseURL =
-  configuredApi || (import.meta.env.PROD ? 'https://afroluxo-by-asi-api.onrender.com' : '/');
+  configuredApi || (import.meta.env.PROD ? 'https://market-place-z0w0.onrender.com' : '/');
 
 axios.interceptors.response.use(
   (r) => r,

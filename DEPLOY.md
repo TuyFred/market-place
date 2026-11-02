@@ -70,7 +70,7 @@ UI: http://localhost:5173 (Vite proxies `/api` → `:4000`)
    - `FRONTEND_URL` = `https://www.afroluxo.com`
    - `NODE_ENV` = `production`
    - `PORT` = `4000` (Render may override; app reads `process.env.PORT`)
-4. After deploy, open `https://afroluxo-by-asi-api.onrender.com/health` and confirm it returns a healthy response. The frontend uses this Render service by default in production; set `VITE_API_URL` if your Render service has a different URL.
+4. After deploy, open `https://market-place-z0w0.onrender.com/health` and confirm it returns a healthy response. This is the live Render service URL shown in the deployment logs; the frontend uses it by default in production. Set `VITE_API_URL` if the Render URL changes.
 5. If you rely on the Vercel same-origin API rewrite instead of `VITE_API_URL`, update the destination in both `vercel.json` and `frontend/vercel.json` to your actual Render URL.
 
 Free-tier note: Render spins down after idle; first request can take ~30–60s.
