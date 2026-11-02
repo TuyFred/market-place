@@ -23,9 +23,10 @@ export function whatsappDigits() {
 
 /** Absolute public product URL (opens the shop product page). */
 export function productPageUrl(productId: string) {
-  if (typeof window === 'undefined') return `/product/${productId}`;
+  const productPath = `/product/${encodeURIComponent(productId)}`;
+  if (typeof window === 'undefined') return productPath;
   const origin = window.location.origin.replace(/\/$/, '');
-  return `${origin}/product/${productId}`;
+  return `${origin}${productPath}`;
 }
 
 export type ProductWhatsAppOpts = {

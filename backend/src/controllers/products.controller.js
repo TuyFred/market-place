@@ -71,7 +71,8 @@ export async function uploadProductImageHandler(request, reply) {
     }
 
     const uniqueName = `${Date.now()}-${file.filename}`;
-    const imageUrl = await uploadImage(file.file, file.mimetype, uniqueName);
+    const imageBuffer = await file.toBuffer();
+    const imageUrl = await uploadImage(imageBuffer, file.mimetype, uniqueName, 'product-images', imageBuffer.length);
 
     const productId = request.query.productId;
     let updatedProductId = null;
@@ -119,4 +120,3 @@ export async function proxyProductImageHandler(request, reply) {
     return sendError(reply, statusCode, err.message || 'Error');
   }
 }
-

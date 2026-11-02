@@ -106,6 +106,16 @@ Server runs on **`http://localhost:4000`** by default.
 - **`SUPABASE_URL`** – e.g. `https://dfvgyiwtxyksbtxgpalz.supabase.co`
 - **`SUPABASE_SERVICE_ROLE_KEY`** – Supabase **service role** key (keep secret, backend only)
 
+### Configure file storage
+
+Apply `supabase-schema.sql` to your Supabase project, then, from the `backend` folder with its environment variables configured, run:
+
+```bash
+npm run create-bucket
+```
+
+This verifies the public `product-images`, `order-proofs`, and `hero-videos` buckets and applies their upload size limits. Product photos are limited to 5 MB; they can also be omitted or supplied as a public image URL when saving a product.
+
 ### Swagger / API docs
 
 - UI: `GET http://localhost:4000/docs`

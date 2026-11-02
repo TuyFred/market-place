@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "check-db": "node src/scripts/check-db.js",
+    "create-bucket": "node src/scripts/create-bucket.js",
     "seed-admin": "node src/scripts/seed-admin.js",
     "seed-products": "node src/scripts/seed-products.js"
   },

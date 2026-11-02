@@ -57,6 +57,7 @@ type UserRow = {
   suspended?: boolean;
 };
 type Tab = 'overview' | 'stats' | 'products' | 'categories' | 'orders' | 'users' | 'reviews' | 'settings' | 'profile';
+type ProductModalNotice = { kind: 'error' | 'success'; message: string };
 
 function authHeaders() {
   const t = localStorage.getItem('admin_token') || localStorage.getItem('customer_token');
@@ -173,6 +174,7 @@ export function AdminDashboardPage() {
   const [prodForm, setProdForm] = useState<Partial<Product>>({});
   const [editingProd, setEditingProd] = useState<string | null>(null);
   const [showProdModal, setShowProdModal] = useState(false);
+  const [productModalNotice, setProductModalNotice] = useState<ProductModalNotice | null>(null);
   const [showCatModal, setShowCatModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showStaffModal, setShowStaffModal] = useState(false);
@@ -349,6 +351,7 @@ export function AdminDashboardPage() {
 
   const openNewProduct = () => {
     setEditingProd(null);
+    setProductModalNotice(null);
     const parentCats = categories.filter((c) => !c.parent_id);
     setProdForm({
       name: '',
@@ -368,6 +371,7 @@ export function AdminDashboardPage() {
 
   const openEditProduct = (p: Product) => {
     setEditingProd(p.id);
+    setProductModalNotice(null);
     setProdForm({
       ...p,
       price: convertRwfToUsd(p.price),
@@ -379,22 +383,56 @@ export function AdminDashboardPage() {
   };
 
   const saveProd = async () => {
+    if (uploading || loading) return;
     setLoading(true);
-    setMsg('');
+    setProductModalNotice(null);
     try {
       if (!prodForm.name?.trim()) {
-        setMsg('Product name is required');
-        setLoading(false);
+        setProductModalNotice({ kind: 'error', message: 'Enter a product name before saving.' });
+        return;
+      }
+      if (!Number.isFinite(Number(prodForm.price)) || Number(prodForm.price) <= 0) {
+        setProductModalNotice({ kind: 'error', message: 'Enter a price greater than $0.00.' });
         return;
       }
       if (!prodForm.category) {
-        setMsg('Please select a category — create one in Categories first if needed');
-        setLoading(false);
+        setProductModalNotice({ kind: 'error', message: 'Choose a category for this product.' });
         return;
       }
       if (!categories.some((c) => c.slug === prodForm.category)) {
-        setMsg('Please select a valid category');
-        setLoading(false);
+        setProductModalNotice({ kind: 'error', message: 'Choose a valid category from the list.' });
+        return;
+      }
+      const stock = Number(prodForm.stock ?? 0);
+      if (!Number.isInteger(stock) || stock < 0) {
+        setProductModalNotice({ kind: 'error', message: 'Stock must be a whole number of 0 or more.' });
+        return;
+      }
+      const imageUrl = prodForm.imageUrl?.trim() || '';
+      if (imageUrl) {
+        try {
+          const parsedImageUrl = new URL(imageUrl);
+          if (parsedImageUrl.protocol !== 'https:' && parsedImageUrl.protocol !== 'http:') {
+            throw new Error('Unsupported image URL protocol');
+          }
+        } catch {
+          setProductModalNotice({
+            kind: 'error',
+            message: 'Check the image link. Use a complete URL beginning with https:// or http://.',
+          });
+          return;
+        }
+      }
+
+      const imageUrls = (prodForm.imageUrls || []).filter((url) => url.trim());
+      if (imageUrl && !imageUrls.includes(imageUrl)) {
+        imageUrls.unshift(imageUrl);
+      }
+      if (!imageUrl && imageUrls.length > 0) {
+        setProductModalNotice({
+          kind: 'error',
+          message: 'Select a cover photo or add its image link before saving.',
+        });
         return;
       }
 
@@ -404,13 +442,12 @@ export function AdminDashboardPage() {
         price: convertUsdToRwf(Number(prodForm.price) || 0),
         category: prodForm.category as string,
         subcategory: prodForm.subcategory || undefined,
-        stock: Number(prodForm.stock) || 0,
+        stock,
         size: prodForm.size || undefined,
         is_active: prodForm.is_active ?? true,
-        imageUrl: prodForm.imageUrl || prodForm.imageUrls?.[0] || '',
-        imageUrls: prodForm.imageUrls || [],
+        imageUrl: imageUrl || imageUrls[0] || '',
+        imageUrls,
       };
-      if (!body.imageUrl && body.imageUrls.length) body.imageUrl = body.imageUrls[0];
 
       if (editingProd) {
         await axios.put(`/api/products/${editingProd}`, body, { headers: authHeaders() });
@@ -424,9 +461,13 @@ export function AdminDashboardPage() {
       setMsg('Product saved to database');
       setTab('products');
     } catch (e: any) {
-      setMsg(e?.response?.data?.message || 'Could not save product');
+      setProductModalNotice({
+        kind: 'error',
+        message: e?.response?.data?.message || 'Could not save the product. Check your connection and try again.',
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const deleteProd = async (id: string) => {
@@ -634,20 +675,50 @@ export function AdminDashboardPage() {
 
   const uploadFiles = async (files: FileList | null) => {
     if (!files?.length) return;
+    const selectedFiles = Array.from(files);
+    const acceptedTypes = new Set([
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'application/octet-stream',
+    ]);
+    const acceptedFiles = selectedFiles.filter(
+      (file) => acceptedTypes.has(file.type.toLowerCase()) && file.size <= 5 * 1024 * 1024,
+    );
+    const rejectedCount = selectedFiles.length - acceptedFiles.length;
+    if (acceptedFiles.length === 0) {
+      setProductModalNotice({
+        kind: 'error',
+        message: 'Choose a JPG, PNG, WebP, or GIF image that is 5 MB or smaller.',
+      });
+      return;
+    }
+
     setUploading(true);
-    setMsg('');
+    setProductModalNotice(null);
+    const uploaded: string[] = [];
+    let uploadError = '';
     try {
-      const uploaded: string[] = [];
-      for (let i = 0; i < files.length; i++) {
+      for (const file of acceptedFiles) {
         const fd = new FormData();
-        fd.append('file', files[i]);
-        const url = editingProd
-          ? `/api/products/upload-image?productId=${editingProd}`
-          : '/api/products/upload-image';
-        const res = await axios.post(url, fd, {
-          headers: { ...authHeaders(), 'Content-Type': 'multipart/form-data' },
-        });
-        if (res.data?.imageUrl) uploaded.push(res.data.imageUrl);
+        fd.append('file', file);
+        try {
+          const res = await axios.post('/api/products/upload-image', fd, {
+            headers: authHeaders(),
+          });
+          if (typeof res.data?.imageUrl !== 'string' || !res.data.imageUrl.trim()) {
+            throw new Error('The server did not return an image URL.');
+          }
+          uploaded.push(res.data.imageUrl);
+        } catch (e: unknown) {
+          uploadError = axios.isAxiosError(e)
+            ? e.response?.data?.message || e.message
+            : e instanceof Error
+              ? e.message
+              : 'Image upload failed.';
+        }
       }
       if (uploaded.length) {
         setProdForm((s) => {
@@ -655,12 +726,22 @@ export function AdminDashboardPage() {
           const combined = [...existing, ...uploaded];
           return { ...s, imageUrls: combined, imageUrl: s.imageUrl || combined[0] };
         });
-        setMsg(`${uploaded.length} image(s) uploaded`);
       }
-    } catch (e: any) {
-      setMsg(e?.response?.data?.message || 'Upload failed');
+      if (uploaded.length > 0 && !uploadError && rejectedCount === 0) {
+        setProductModalNotice({
+          kind: 'success',
+          message: `${uploaded.length} photo${uploaded.length === 1 ? '' : 's'} uploaded. Save the product to publish them.`,
+        });
+      } else {
+        const parts = [];
+        if (uploaded.length) parts.push(`${uploaded.length} photo${uploaded.length === 1 ? '' : 's'} uploaded`);
+        if (rejectedCount) parts.push(`${rejectedCount} file${rejectedCount === 1 ? '' : 's'} skipped (use JPG, PNG, WebP, or GIF images up to 5 MB)`);
+        if (uploadError) parts.push(uploadError);
+        setProductModalNotice({ kind: 'error', message: parts.join('. ') || 'Image upload failed.' });
+      }
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const saveProfile = async () => {
@@ -2066,16 +2147,60 @@ export function AdminDashboardPage() {
       {/* Product modal */}
       {showProdModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
-          <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close" onClick={() => setShowProdModal(false)} />
-          <div className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close"
+            disabled={uploading || loading}
+            onClick={() => setShowProdModal(false)}
+          />
+          <div
+            className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-modal-title"
+          >
             <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 sm:px-5">
-              <h2 className="text-base font-bold">{editingProd ? 'Edit product' : 'Add product'}</h2>
-              <button type="button" onClick={() => setShowProdModal(false)} className="h-9 w-9 rounded-full hover:bg-neutral-100" aria-label="Close">
+              <div>
+                <h2 id="product-modal-title" className="text-base font-bold">{editingProd ? 'Edit product' : 'Add product'}</h2>
+                <p className="mt-0.5 text-xs text-neutral-500">Add the details customers need to make a confident purchase.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowProdModal(false)}
+                disabled={uploading || loading}
+                className="h-9 w-9 rounded-full hover:bg-neutral-100 disabled:opacity-40"
+                aria-label="Close"
+              >
                 ✕
               </button>
             </div>
 
             <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
+              {productModalNotice && (
+                <div
+                  className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
+                    productModalNotice.kind === 'error'
+                      ? 'border-red-200 bg-red-50 text-red-800'
+                      : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  }`}
+                  role={productModalNotice.kind === 'error' ? 'alert' : 'status'}
+                  aria-live={productModalNotice.kind === 'error' ? 'assertive' : 'polite'}
+                >
+                  <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/80 font-bold">
+                    {productModalNotice.kind === 'error' ? '!' : '✓'}
+                  </span>
+                  <p className="min-w-0 flex-1 leading-relaxed">{productModalNotice.message}</p>
+                  <button
+                    type="button"
+                    onClick={() => setProductModalNotice(null)}
+                    className="shrink-0 rounded p-1 text-current/60 hover:text-current"
+                    aria-label="Dismiss message"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
               {categories.length === 0 ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                   Create a category first, then come back to add products.
@@ -2124,9 +2249,10 @@ export function AdminDashboardPage() {
                         className={inputClass}
                         type="number"
                         min={0}
+                        step={1}
                         placeholder="e.g. 10"
                         value={prodForm.stock ?? ''}
-                        onChange={(e) => setProdForm({ ...prodForm, stock: parseInt(e.target.value, 10) || 0 })}
+                        onChange={(e) => setProdForm({ ...prodForm, stock: Number(e.target.value) || 0 })}
                       />
                       <p className="mt-1 text-[11px] text-neutral-400">
                         Decreases automatically when customers order. 0 = sold out on the shop.
@@ -2205,20 +2331,23 @@ export function AdminDashboardPage() {
                   </div>
 
                   <div>
-                    <label className={labelClass}>Product photos</label>
+                    <label className={labelClass}>Product photos <span className="font-normal normal-case tracking-normal text-neutral-400">(optional)</span></label>
+                    <p className="mb-3 text-xs leading-relaxed text-neutral-500">
+                      A photo helps shoppers decide, but you can save the product without one. Upload JPG, PNG, WebP, or GIF images up to 5 MB each, or paste a direct image link below.
+                    </p>
                     <label className="mb-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 bg-neutral-50 px-4 py-6 text-center transition hover:border-black hover:bg-white">
                       <span className="text-2xl leading-none text-neutral-400">+</span>
                       <span className="mt-2 text-sm font-semibold text-black">
                         {uploading ? 'Uploading…' : 'Tap to add photos'}
                       </span>
                       <span className="mt-1 text-[11px] text-neutral-500">
-                        JPG, PNG or WebP · first photo is the shop thumbnail
+                        {uploading ? 'Keep this form open while your photos upload' : 'The first photo is used as the shop thumbnail'}
                       </span>
                       <input
                         type="file"
                         className="hidden"
                         multiple
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
                         disabled={uploading}
                         onChange={(e) => {
                           uploadFiles(e.target.files);
@@ -2262,10 +2391,13 @@ export function AdminDashboardPage() {
                     )}
 
                     <div className="mt-3">
-                      <label className={labelClass}>Or paste image URL</label>
+                      <label className={labelClass}>Or paste image URL <span className="font-normal normal-case tracking-normal text-neutral-400">(optional)</span></label>
                       <input
                         className={inputClass}
-                        placeholder="https://…"
+                        type="url"
+                        inputMode="url"
+                        autoComplete="url"
+                        placeholder="https://example.com/product-photo.jpg"
                         value={prodForm.imageUrl || ''}
                         onChange={(e) => {
                           const url = e.target.value;
@@ -2278,6 +2410,7 @@ export function AdminDashboardPage() {
                           });
                         }}
                       />
+                      <p className="mt-1 text-[11px] text-neutral-400">Use a direct public link to an image file. Leave blank if you are not adding a photo.</p>
                     </div>
                   </div>
                 </>
@@ -2285,16 +2418,21 @@ export function AdminDashboardPage() {
             </div>
 
             <div className="flex gap-2 border-t border-neutral-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
-              <button type="button" onClick={() => setShowProdModal(false)} className={btnGhost}>
+              <button
+                type="button"
+                onClick={() => setShowProdModal(false)}
+                disabled={uploading || loading}
+                className={btnGhost}
+              >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={saveProd}
-                disabled={loading || categories.length === 0}
+                disabled={loading || uploading || categories.length === 0}
                 className={`${btnPrimary} flex-1`}
               >
-                {loading ? 'Saving…' : editingProd ? 'Update product' : 'Save product'}
+                {uploading ? 'Uploading photos…' : loading ? 'Saving…' : editingProd ? 'Update product' : 'Save product'}
               </button>
             </div>
           </div>

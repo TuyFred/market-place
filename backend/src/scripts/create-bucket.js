@@ -13,38 +13,38 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+const bucketsToEnsure = [
+    { name: 'product-images', fileSizeLimit: 5 * 1024 * 1024 },
+    { name: 'order-proofs', fileSizeLimit: 5 * 1024 * 1024 },
+    { name: 'hero-videos', fileSizeLimit: 40 * 1024 * 1024 }
+];
+
 async function main() {
-    console.log('Checking bucket hero-videos...');
     const { data: buckets, error: getErr } = await supabase.storage.listBuckets();
-    if (getErr) {
-        console.error('Error listing buckets:', getErr.message);
-        return;
-    }
+    if (getErr) throw new Error(`Error listing buckets: ${getErr.message}`);
 
-    const exists = buckets.find(b => b.name === 'hero-videos');
-    if (!exists) {
-        console.log('Bucket not found. Creating hero-videos...');
-        const { data, error } = await supabase.storage.createBucket('hero-videos', {
-            public: true,
-            fileSizeLimit: 52428800, // 50MB
-            allowedMimeTypes: ['video/mp4', 'video/webm', 'video/quicktime']
-        });
-        if (error) {
-            console.error('Error creating bucket:', error.message);
-        } else {
-            console.log('Bucket created successfully!');
-        }
-    } else {
-        console.log('Bucket hero-videos already exists.');
-
-        // Ensure it's public
-        if (!exists.public) {
-            await supabase.storage.updateBucket('hero-videos', {
-                public: true
+    for (const bucketConfig of bucketsToEnsure) {
+        const existing = buckets.find((bucket) => bucket.name === bucketConfig.name);
+        if (!existing) {
+            const { error } = await supabase.storage.createBucket(bucketConfig.name, {
+                public: true,
+                fileSizeLimit: bucketConfig.fileSizeLimit
             });
-            console.log('Updated bucket to be public.');
+            if (error) throw new Error(`Could not create ${bucketConfig.name}: ${error.message}`);
+            console.log(`Created public bucket ${bucketConfig.name}.`);
+            continue;
         }
+
+        const { error } = await supabase.storage.updateBucket(bucketConfig.name, {
+            public: true,
+            fileSizeLimit: bucketConfig.fileSizeLimit
+        });
+        if (error) throw new Error(`Could not configure ${bucketConfig.name}: ${error.message}`);
+        console.log(`Verified public bucket ${bucketConfig.name}.`);
     }
 }
 
-main().catch(console.error);
+main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});
