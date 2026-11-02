@@ -699,25 +699,39 @@ export function AdminDashboardPage() {
     setUploading(true);
     setProductModalNotice(null);
     const uploaded: string[] = [];
-    let uploadError = '';
+    const uploadErrors: string[] = [];
     try {
       for (const file of acceptedFiles) {
         const fd = new FormData();
         fd.append('file', file);
         try {
-          const res = await axios.post('/api/products/upload-image', fd, {
+          const res = await axios.post<{ imageUrl?: string }>('/api/products/upload-image', fd, {
             headers: authHeaders(),
+            timeout: 120_000,
           });
           if (typeof res.data?.imageUrl !== 'string' || !res.data.imageUrl.trim()) {
             throw new Error('The server did not return an image URL.');
           }
           uploaded.push(res.data.imageUrl);
         } catch (e: unknown) {
-          uploadError = axios.isAxiosError(e)
-            ? e.response?.data?.message || e.message
-            : e instanceof Error
-              ? e.message
-              : 'Image upload failed.';
+          if (axios.isAxiosError<{ message?: string }>(e)) {
+            const status = e.response?.status;
+            const serverMessage = e.response?.data?.message;
+            uploadErrors.push(
+              serverMessage ||
+                (status === 401
+                  ? 'Your admin session has expired. Sign in again and retry.'
+                  : status === 413
+                    ? 'This image is too large. Choose an image up to 5 MB.'
+                    : status && status >= 500
+                      ? 'The upload service had a problem. Please retry in a moment.'
+                      : !e.response
+                        ? 'Could not reach the upload API. Check the shop domain, internet connection, and API deployment.'
+                        : e.message),
+            );
+          } else {
+            uploadErrors.push(e instanceof Error ? e.message : 'Image upload failed.');
+          }
         }
       }
       if (uploaded.length) {
@@ -727,7 +741,7 @@ export function AdminDashboardPage() {
           return { ...s, imageUrls: combined, imageUrl: s.imageUrl || combined[0] };
         });
       }
-      if (uploaded.length > 0 && !uploadError && rejectedCount === 0) {
+      if (uploaded.length > 0 && uploadErrors.length === 0 && rejectedCount === 0) {
         setProductModalNotice({
           kind: 'success',
           message: `${uploaded.length} photo${uploaded.length === 1 ? '' : 's'} uploaded. Save the product to publish them.`,
@@ -736,7 +750,7 @@ export function AdminDashboardPage() {
         const parts = [];
         if (uploaded.length) parts.push(`${uploaded.length} photo${uploaded.length === 1 ? '' : 's'} uploaded`);
         if (rejectedCount) parts.push(`${rejectedCount} file${rejectedCount === 1 ? '' : 's'} skipped (use JPG, PNG, WebP, or GIF images up to 5 MB)`);
-        if (uploadError) parts.push(uploadError);
+        parts.push(...uploadErrors);
         setProductModalNotice({ kind: 'error', message: parts.join('. ') || 'Image upload failed.' });
       }
     } finally {

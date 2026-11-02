@@ -107,8 +107,26 @@ export async function uploadProductImageHandler(request, reply) {
 
     return sendSuccess(reply, 200, { imageUrl, updatedProductId });
   } catch (err) {
-    const statusCode = err.statusCode || 400;
-    return sendError(reply, statusCode, err.message);
+    const message = err.message || 'Product image upload failed';
+    const statusCode =
+      err.statusCode ||
+      (err.code === 'FST_REQ_FILE_TOO_LARGE'
+        ? 413
+        : /fetch failed|network|timeout|econn|enotfound/i.test(message)
+          ? 502
+          : /bucket.*not found|not found.*bucket/i.test(message)
+            ? 503
+            : 400);
+    request.log.error({ err, statusCode }, 'Product image upload failed');
+    const userMessage =
+      statusCode === 413
+        ? 'Image upload is too large. Choose an image up to 5 MB.'
+        : statusCode === 503
+          ? 'Product image storage is not ready. Ask the administrator to configure the product-images storage bucket.'
+          : statusCode === 502
+            ? 'The image storage service could not be reached. Please try again shortly.'
+            : message;
+    return sendError(reply, statusCode, userMessage);
   }
 }
 
