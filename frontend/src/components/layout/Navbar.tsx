@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import axios from 'axios';
-import { formatRwf } from '../../utils/format';
+import { formatUsdFromRwf } from '../../utils/format';
 import { BrandLogo } from './BrandLogo';
 
 type SearchResult = {
@@ -129,7 +129,7 @@ function AutoSearch({
                   <p className="truncate text-sm font-medium text-black">{p.name}</p>
                   <p className="truncate text-xs text-neutral-500">
                     {p.category ? `${p.category} · ` : ''}
-                    {formatRwf(p.price)}
+                    {formatUsdFromRwf(p.price)}
                   </p>
                 </div>
               </button>

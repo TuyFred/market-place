@@ -1,5 +1,5 @@
 import type { Product } from '../components/products/ProductCard';
-import { formatRwf } from './format';
+import { formatUsdFromRwf } from './format';
 import {
   buildCartWhatsAppMessage,
   buildProductWhatsAppMessage,
@@ -25,7 +25,7 @@ export function orderProductOnWhatsApp(product: Product, auth: AuthGate, quantit
 
   const message = buildProductWhatsAppMessage({
     name: product.name,
-    priceLabel: formatRwf(product.price),
+    priceLabel: formatUsdFromRwf(product.price),
     category: product.category,
     subcategory: product.subcategory,
     size: (product as { size?: string }).size,
@@ -56,11 +56,11 @@ export function orderCartOnWhatsApp(
     items.map((i) => ({
       name: i.product.name,
       quantity: i.quantity,
-      priceLabel: formatRwf(i.product.price),
-      lineTotalLabel: formatRwf(i.product.price * i.quantity),
+      priceLabel: formatUsdFromRwf(i.product.price),
+      lineTotalLabel: formatUsdFromRwf(i.product.price * i.quantity),
       productId: i.product.id,
     })),
-    formatRwf(total),
+    formatUsdFromRwf(total),
     { name: auth.user?.fullName, email: auth.user?.email },
   );
 

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import type { CheckoutLine } from './types';
-import { formatRwf } from '../../utils/format';
+import { formatUsdFromRwf } from '../../utils/format';
 import { SAMPLE_IMAGES } from '../../config/brand';
 import { CONTACT_DISPLAY, CONTACT_RAW, openWhatsApp, whatsappDigits } from '../../utils/whatsapp';
 
@@ -74,7 +74,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
   const supportDigits = (supportPhone || '').replace(/\D/g, '') || whatsappDigits();
 
   const askSupport = () => {
-    const msg = `Hello AFROLUXO support,\nI need help with checkout / payment.\nTotal: ${formatRwf(total)}\nItems: ${lines.map((l) => l.product.name).join(', ')}`;
+    const msg = `Hello AFROLUXO support,\nI need help with checkout / payment.\nTotal: ${formatUsdFromRwf(total)}\nItems: ${lines.map((l) => l.product.name).join(', ')}`;
     openWhatsApp(msg);
   };
 
@@ -114,7 +114,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
           `Payment method: ${method}`,
           `Reference: ${paymentReference.trim()}`,
           `Qty: ${line.quantity}`,
-          `Amount: ${formatRwf(line.product.price * line.quantity)}`,
+          `Amount: ${formatUsdFromRwf(line.product.price * line.quantity)}`,
           email ? `Email: ${email}` : '',
           `Product: ${line.product.name}`,
         ]
@@ -224,13 +224,13 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{l.product.name}</p>
                       <p className="text-xs text-neutral-500">
-                        × {l.quantity} · {formatRwf(l.product.price * l.quantity)}
+                        × {l.quantity} · {formatUsdFromRwf(l.product.price * l.quantity)}
                       </p>
                     </div>
                   </div>
                 ))}
                 <p className="mt-2 border-t border-neutral-200 pt-2 text-right text-sm font-bold">
-                  Total {formatRwf(total)}
+                  Total {formatUsdFromRwf(total)}
                 </p>
               </div>
 

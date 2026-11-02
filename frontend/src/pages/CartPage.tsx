@@ -2,7 +2,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useCheckout } from '../context/CheckoutContext';
 import { SAMPLE_IMAGES } from '../config/brand';
-import { formatRwf } from '../utils/format';
+import { formatUsdFromRwf } from '../utils/format';
 import { Link } from 'react-router-dom';
 import { orderCartOnWhatsApp } from '../utils/orderWhatsApp';
 import { AppBackButton } from '../components/layout/AppBackButton';
@@ -53,7 +53,7 @@ export function CartPage() {
                 <Link to={`/product/${item.product.id}`} className="truncate text-sm font-semibold text-black sm:text-base">
                   {item.product.name}
                 </Link>
-                <p className="mt-0.5 text-sm font-bold tabular-nums">{formatRwf(item.product.price)}</p>
+                <p className="mt-0.5 text-sm font-bold tabular-nums">{formatUsdFromRwf(item.product.price)}</p>
                 <div className="mt-auto flex items-center justify-between gap-2 pt-2">
                   <div className="inline-flex items-center rounded-full border border-neutral-200 bg-neutral-50">
                     <button
@@ -99,7 +99,7 @@ export function CartPage() {
 
         <aside className="h-fit rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm lg:sticky lg:top-24">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-400">Summary</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums">{formatRwf(totalPrice)}</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums">{formatUsdFromRwf(totalPrice)}</p>
           <p className="mt-2 text-xs leading-relaxed text-neutral-500">
             Checkout with card/bank, or send your cart on WhatsApp.
           </p>

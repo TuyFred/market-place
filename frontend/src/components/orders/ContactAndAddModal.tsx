@@ -1,5 +1,6 @@
 import { Product } from '../products/ProductCard';
 import { WhatsAppOrderButton } from './WhatsAppOrderButton';
+import { formatUsdFromRwf } from '../../utils/format';
 
 type Props = {
   product: Product;
@@ -14,7 +15,7 @@ export function ContactAndAddModal({ product, open, onClose, onConfirmAdd }: Pro
   const emailSubject = encodeURIComponent(`Inquiry about ${product.name}`);
   const emailBody = encodeURIComponent(
     `Hello,%0A%0AI would like to ask about the following product before placing it in my cart:%0A%0A` +
-      `Product: ${product.name}%0APrice: ${new Intl.NumberFormat('en-RW', { style: 'currency', currency: 'RWF', maximumFractionDigits: 0 }).format(product.price)}%0ACategory: ${product.category}%0A%0APlease confirm availability and any other details.%0A%0AThank you.`
+      `Product: ${product.name}%0APrice: ${formatUsdFromRwf(product.price)}%0ACategory: ${product.category}%0A%0APlease confirm availability and any other details.%0A%0AThank you.`
   );
 
   return (

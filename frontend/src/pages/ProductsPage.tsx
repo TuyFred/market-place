@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Product, ProductCard } from '../components/products/ProductCard';
+import { formatUsdFromRwf } from '../utils/format';
 const CATEGORY_LABELS: Record<string, string> = {
   'african-traditional': 'African Traditional',
   'ankara-prints': 'Ankara & Prints',
@@ -210,7 +211,7 @@ export function ProductsPage() {
                           maxPrice === value ? 'font-medium' : ''
                         }`}
                       >
-                        Under {value.toLocaleString()}
+                        Under {formatUsdFromRwf(value)}
                       </button>
                     );
                   })}

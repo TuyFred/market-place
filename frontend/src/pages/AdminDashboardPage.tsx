@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { formatRwf } from '../utils/format';
+import { convertRwfToUsd, convertUsdToRwf, formatUsd, formatUsdFromRwf } from '../utils/format';
 import { BRAND, SAMPLE_IMAGES } from '../config/brand';
 import { useAuth } from '../context/AuthContext';
 import { AppBackButton } from '../components/layout/AppBackButton';
@@ -368,7 +368,11 @@ export function AdminDashboardPage() {
 
   const openEditProduct = (p: Product) => {
     setEditingProd(p.id);
-    setProdForm({ ...p, imageUrls: p.imageUrls || (p.imageUrl ? [p.imageUrl] : []) });
+    setProdForm({
+      ...p,
+      price: convertRwfToUsd(p.price),
+      imageUrls: p.imageUrls || (p.imageUrl ? [p.imageUrl] : []),
+    });
     setShowProdModal(true);
     setViewingProd(null);
     setMsg('');
@@ -397,7 +401,7 @@ export function AdminDashboardPage() {
       const body = {
         name: prodForm.name.trim(),
         description: prodForm.description || '',
-        price: Number(prodForm.price) || 0,
+        price: convertUsdToRwf(Number(prodForm.price) || 0),
         category: prodForm.category as string,
         subcategory: prodForm.subcategory || undefined,
         stock: Number(prodForm.stock) || 0,
@@ -956,7 +960,7 @@ export function AdminDashboardPage() {
                         </div>
                         <p className="mt-1 text-neutral-500">
                           {o.products?.name || '—'}
-                          {o.products?.price != null ? ` · ${formatRwf(o.products.price)}` : ''}
+                          {o.products?.price != null ? ` · ${formatUsdFromRwf(o.products.price)}` : ''}
                         </p>
                       </div>
                     ))}
@@ -1070,7 +1074,7 @@ export function AdminDashboardPage() {
                             <td className="px-4 py-3 text-neutral-600">
                               {categories.find((c) => c.slug === p.category)?.name || p.category}
                             </td>
-                            <td className="px-4 py-3 font-semibold">{formatRwf(p.price ?? 0)}</td>
+                            <td className="px-4 py-3 font-semibold">{formatUsdFromRwf(p.price ?? 0)}</td>
                             <td className="px-4 py-3">
                               <span
                                 className={
@@ -1294,8 +1298,8 @@ export function AdminDashboardPage() {
                               </h4>
                               <p className="text-sm text-neutral-600">
                                 Qty {qty}
-                                {unit ? ` · ${formatRwf(unit)}` : ''}
-                                {total ? ` · Total ${formatRwf(total)}` : ''}
+                                {unit ? ` · ${formatUsdFromRwf(unit)}` : ''}
+                                {total ? ` · Total ${formatUsdFromRwf(total)}` : ''}
                               </p>
                             </div>
                             <span
@@ -2100,17 +2104,18 @@ export function AdminDashboardPage() {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>Price (RWF) *</label>
+                      <label className={labelClass}>Price (USD) *</label>
                       <input
                         className={inputClass}
                         type="number"
                         min={0}
+                        step="0.01"
                         placeholder="0"
                         value={prodForm.price ?? ''}
                         onChange={(e) => setProdForm({ ...prodForm, price: parseFloat(e.target.value) || 0 })}
                       />
                       {typeof prodForm.price === 'number' && (
-                        <p className="mt-1 text-xs text-neutral-500">{formatRwf(prodForm.price)}</p>
+                        <p className="mt-1 text-xs text-neutral-500">{formatUsd(prodForm.price)}</p>
                       )}
                     </div>
                     <div>
@@ -2323,7 +2328,7 @@ export function AdminDashboardPage() {
                   ✕
                 </button>
               </div>
-              <p className="text-lg font-bold">{formatRwf(viewingProd.price)}</p>
+              <p className="text-lg font-bold">{formatUsdFromRwf(viewingProd.price)}</p>
               <p className="text-sm text-neutral-600">{viewingProd.description || 'No description'}</p>
               <p className="text-sm text-neutral-500">
                 Stock: <span className="font-semibold text-black">{viewingProd.stock ?? 0}</span>
@@ -2388,7 +2393,7 @@ export function AdminDashboardPage() {
                 <dd className="text-right font-semibold">
                   {viewingOrder.quantity || 1}
                   {viewingOrder.products?.price != null
-                    ? ` · ${formatRwf((viewingOrder.products.price || 0) * (viewingOrder.quantity || 1))}`
+                    ? ` · ${formatUsdFromRwf((viewingOrder.products.price || 0) * (viewingOrder.quantity || 1))}`
                     : ''}
                 </dd>
               </div>

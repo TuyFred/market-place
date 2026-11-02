@@ -2,7 +2,7 @@ import { useCart } from '../../context/CartContext';
 import { useCheckout } from '../../context/CheckoutContext';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { formatRwf } from '../../utils/format';
+import { formatUsdFromRwf } from '../../utils/format';
 import { SAMPLE_IMAGES } from '../../config/brand';
 import { orderProductOnWhatsApp } from '../../utils/orderWhatsApp';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -277,11 +277,11 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
 
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-1">
             <span className="text-xs font-bold tabular-nums text-black sm:text-sm">
-              {formatRwf(product.price)}
+              {formatUsdFromRwf(product.price)}
             </span>
             {onSale && (
               <span className="text-[10px] tabular-nums text-neutral-400 line-through sm:text-[11px]">
-                {product.compareAtPrice!.toLocaleString()}
+                {formatUsdFromRwf(product.compareAtPrice!)}
               </span>
             )}
           </div>
@@ -449,7 +449,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
 
           <div className="mt-auto flex items-center justify-between gap-1 pt-0.5">
             <p className="truncate text-[12px] font-black tracking-tight text-ink sm:text-base">
-              {formatRwf(product.price)}
+              {formatUsdFromRwf(product.price)}
             </p>
           </div>
 
@@ -511,7 +511,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 <span className="rounded-full bg-stone px-2.5 py-1 text-xs font-black text-ink">
-                  {formatRwf(product.price)}
+                  {formatUsdFromRwf(product.price)}
                 </span>
                 <button
                   type="button"

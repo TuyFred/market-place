@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { formatRwf } from '../utils/format';
+import { formatUsdFromRwf } from '../utils/format';
 import { openWhatsApp, CONTACT_DISPLAY } from '../utils/whatsapp';
 import { AppBackButton } from '../components/layout/AppBackButton';
 
@@ -224,8 +224,8 @@ export function CustomerDashboardPage() {
                           </h3>
                           <p className="mt-1 text-sm text-neutral-600">
                             Qty {qty}
-                            {unit ? ` · ${formatRwf(unit)} each` : ''}
-                            {lineTotal ? ` · ${formatRwf(lineTotal)}` : ''}
+                            {unit ? ` · ${formatUsdFromRwf(unit)} each` : ''}
+                            {lineTotal ? ` · ${formatUsdFromRwf(lineTotal)}` : ''}
                           </p>
                           {order.payment_method && (
                             <p className="mt-0.5 text-xs capitalize text-neutral-500">

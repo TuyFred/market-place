@@ -6,7 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useCheckout } from '../context/CheckoutContext';
 import { useAuth } from '../context/AuthContext';
 import { SAMPLE_IMAGES } from '../config/brand';
-import { formatRwf } from '../utils/format';
+import { formatUsdFromRwf } from '../utils/format';
 import { orderProductOnWhatsApp } from '../utils/orderWhatsApp';
 import { AppBackButton } from '../components/layout/AppBackButton';
 import { ProductReviews } from '../components/products/ProductReviews';
@@ -149,7 +149,7 @@ export function ProductPage() {
               {product.category}
             </p>
             <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{product.name}</h1>
-            <p className="mt-3 text-xl font-semibold">{formatRwf(product.price)}</p>
+            <p className="mt-3 text-xl font-semibold">{formatUsdFromRwf(product.price)}</p>
             {(product.reviewCount || 0) > 0 && (
               <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-neutral-600">
                 <svg className="h-4 w-4 text-amber-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { formatRwf } from '../../utils/format';
+import { formatUsdFromRwf } from '../../utils/format';
 
 type Stats = {
   totals: {
@@ -78,7 +78,7 @@ export function AdminStatsPanel() {
   const catMax = Math.max(1, ...byCategory.map((c) => c.value));
 
   const kpis = [
-    { label: 'Revenue (est.)', value: formatRwf(totals.revenueEstimate), hint: 'Confirmed-ready orders' },
+    { label: 'Revenue (est.)', value: formatUsdFromRwf(totals.revenueEstimate), hint: 'Confirmed-ready orders' },
     { label: 'Orders', value: String(totals.orders), hint: `${totals.pendingReview} awaiting payment review` },
     { label: 'Products', value: String(totals.activeProducts), hint: `${totals.outOfStock} sold out` },
     { label: 'Engagement', value: String(totals.likes + totals.reviews), hint: `${totals.likes} likes · ${totals.reviews} reviews` },
@@ -112,12 +112,12 @@ export function AdminStatsPanel() {
             {revenueSeries.map((d) => (
               <div key={d.date} className="group flex min-w-0 flex-1 flex-col items-center justify-end">
                 <div className="mb-1 hidden rounded bg-black px-1.5 py-0.5 text-[9px] text-white opacity-0 transition group-hover:opacity-100 sm:block">
-                  {formatRwf(d.revenue)}
+                  {formatUsdFromRwf(d.revenue)}
                 </div>
                 <div
                   className="w-full rounded-t-md bg-gradient-to-t from-black to-neutral-600 transition hover:to-neutral-500"
                   style={{ height: `${Math.max(4, (d.revenue / maxRev) * 100)}%` }}
-                  title={`${d.date}: ${formatRwf(d.revenue)} · ${d.orders} orders`}
+                  title={`${d.date}: ${formatUsdFromRwf(d.revenue)} · ${d.orders} orders`}
                 />
                 <p className="mt-1 truncate text-[8px] text-neutral-400 sm:text-[9px]">{d.date.slice(5)}</p>
               </div>

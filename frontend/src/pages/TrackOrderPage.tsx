@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { formatRwf } from '../utils/format';
+import { formatUsdFromRwf } from '../utils/format';
 
 type TrackedOrder = {
     id: string;
@@ -111,7 +111,7 @@ export function TrackOrderPage() {
                                 </div>
                                 <div className="text-right">
                                     <p className="text-xs text-slate-400 font-black uppercase tracking-widest mb-1">Total</p>
-                                    <p className="text-xl font-black text-slate-900">{formatRwf(order.products?.price || 0)}</p>
+                                    <p className="text-xl font-black text-slate-900">{formatUsdFromRwf(order.products?.price || 0)}</p>
                                 </div>
                             </div>
 

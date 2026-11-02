@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Product, ProductCard } from '../components/products/ProductCard';
+import { formatUsdFromRwf } from '../utils/format';
 type AvailabilityFilter = 'all' | 'in_stock' | 'sold_out';
 type SortOption = 'featured' | 'price_asc' | 'price_desc' | 'name_asc';
 type GridCols = 2 | 4;
@@ -167,7 +168,7 @@ export function HomePage() {
                           maxPrice === value ? 'font-medium' : ''
                         }`}
                       >
-                        Under {value.toLocaleString()}
+                        Under {formatUsdFromRwf(value)}
                       </button>
                     );
                   })}

@@ -75,6 +75,10 @@ UI: http://localhost:5173 (Vite proxies `/api` → `:4000`)
 
 Free-tier note: Render spins down after idle; first request can take ~30–60s.
 
+### Store currency
+
+The storefront and admin product form display prices in USD. Existing database prices are converted at the fixed reference rate of 1 RWF = $0.000678 (ExchangeRate-API, 2026-11-02); new USD prices entered in the admin form are converted back to the database's existing unit when saved. Update `frontend/src/utils/format.ts` if you choose a new rate.
+
 ---
 
 ## 4) Host frontend on Vercel
