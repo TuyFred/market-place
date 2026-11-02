@@ -303,7 +303,7 @@ export function Navbar() {
               )}
             </div>
 
-            <div className="relative hidden sm:block">
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => {
@@ -313,8 +313,11 @@ export function Navbar() {
                   }
                   setAccountOpen((v) => !v);
                 }}
-                className="inline-flex h-10 w-10 items-center justify-center text-black hover:opacity-60"
-                aria-label="Account"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-black hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+                aria-label={isAuthenticated ? 'My account' : 'Sign in or create an account'}
+                aria-expanded={isAuthenticated ? accountOpen : undefined}
+                aria-haspopup={isAuthenticated ? 'menu' : undefined}
+                title={isAuthenticated ? 'My account' : 'Sign in or create an account'}
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                   <path
@@ -325,12 +328,13 @@ export function Navbar() {
                 </svg>
               </button>
               {isAuthenticated && accountOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-44 border border-neutral-200 bg-white py-2 text-sm shadow-lg">
+                <div className="absolute right-0 top-full z-50 mt-2 w-52 max-w-[calc(100vw-1rem)] border border-neutral-200 bg-white py-2 text-sm shadow-lg" role="menu">
                   {(user?.role === 'admin' || user?.role === 'manager') && (
                     <NavLink
                       to="/admin/dashboard"
                       onClick={() => setAccountOpen(false)}
-                      className="block px-4 py-2 text-black hover:bg-neutral-50"
+                      className="block px-4 py-3 text-black hover:bg-neutral-50"
+                      role="menuitem"
                     >
                       Dashboard
                     </NavLink>
@@ -338,7 +342,8 @@ export function Navbar() {
                   <NavLink
                     to="/customer/dashboard"
                     onClick={() => setAccountOpen(false)}
-                    className="block px-4 py-2 text-black hover:bg-neutral-50"
+                    className="block px-4 py-3 text-black hover:bg-neutral-50"
+                    role="menuitem"
                   >
                     My orders
                   </NavLink>
@@ -348,7 +353,8 @@ export function Navbar() {
                       setAccountOpen(false);
                       handleLogout();
                     }}
-                    className="w-full px-4 py-2 text-left text-neutral-600 hover:bg-neutral-50"
+                    className="w-full px-4 py-3 text-left text-neutral-600 hover:bg-neutral-50"
+                    role="menuitem"
                   >
                     Sign out
                   </button>
@@ -428,13 +434,27 @@ export function Navbar() {
                   setOpen(false);
                   openAuthModal('login');
                 }}
-                className="px-3 py-3 text-left text-sm text-black"
+                className="mt-2 flex min-h-12 items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-left text-sm font-semibold text-black"
               >
-                Account
+                <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} aria-hidden>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                  />
+                </svg>
+                Sign in or create an account
               </button>
             ) : (
               <>
-                <NavLink to="/customer/dashboard" onClick={() => setOpen(false)} className="px-3 py-3 text-sm text-black">
+                <NavLink to="/customer/dashboard" onClick={() => setOpen(false)} className="mt-2 flex min-h-12 items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-black">
+                  <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} aria-hidden>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                    />
+                  </svg>
                   My orders
                 </NavLink>
                 <button

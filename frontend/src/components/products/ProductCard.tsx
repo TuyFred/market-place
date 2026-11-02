@@ -234,12 +234,12 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
           </Link>
 
           {onSale && !soldOut && (
-            <span className="absolute left-1.5 top-1.5 z-10 rounded bg-[#e91e63] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white">
+            <span className="absolute left-1.5 top-1.5 z-10 rounded bg-[#e91e63] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white sm:text-[10px]">
               Sale
             </span>
           )}
           {soldOut && (
-            <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-white/95 px-2 py-0.5 text-[9px] text-neutral-600">
+            <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-white/95 px-2 py-1 text-[10px] text-neutral-600">
               Sold out
             </span>
           )}
@@ -268,26 +268,26 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col gap-0.5 p-1.5 sm:gap-1 sm:p-2">
+        <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-1.5 sm:p-3">
           <Link to={`/product/${product.id}`} className="min-w-0">
-            <h3 className="line-clamp-2 text-[10px] font-semibold leading-snug text-black sm:text-[12px]">
+            <h3 className="line-clamp-2 text-[11px] font-semibold leading-snug text-black sm:text-[13px]">
               {product.name}
             </h3>
           </Link>
 
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-1">
-            <span className="text-[11px] font-bold tabular-nums text-black sm:text-[13px]">
+            <span className="text-xs font-bold tabular-nums text-black sm:text-sm">
               {formatRwf(product.price)}
             </span>
             {onSale && (
-              <span className="text-[9px] tabular-nums text-neutral-400 line-through sm:text-[10px]">
+              <span className="text-[10px] tabular-nums text-neutral-400 line-through sm:text-[11px]">
                 {product.compareAtPrice!.toLocaleString()}
               </span>
             )}
           </div>
 
           {!soldOut && typeof product.stock === 'number' && product.stock > 0 && product.stock <= 5 && (
-            <p className="text-[9px] font-medium text-amber-700 sm:text-[10px]">
+            <p className="text-[10px] font-medium text-amber-700 sm:text-[11px]">
               Only {product.stock} left
             </p>
           )}
@@ -296,7 +296,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             <button
               type="button"
               disabled
-              className="mt-1 inline-flex w-full min-h-[32px] items-center justify-center rounded-full bg-neutral-200 px-1 text-[9px] font-semibold text-neutral-500"
+              className="mt-1 inline-flex w-full min-h-10 items-center justify-center rounded-full bg-neutral-200 px-1 text-[10px] font-semibold text-neutral-500"
             >
               Sold out
             </button>
@@ -305,14 +305,14 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="inline-flex min-h-[32px] min-w-0 flex-1 items-center justify-center rounded-full bg-black px-1.5 text-[9px] font-semibold text-white touch-manipulation active:scale-[0.98] hover:bg-neutral-800 sm:min-h-[34px] sm:text-[10px]"
+                className="inline-flex min-h-10 min-w-0 flex-1 items-center justify-center rounded-full bg-black px-1.5 text-[10px] font-semibold text-white touch-manipulation active:scale-[0.98] hover:bg-neutral-800 sm:min-h-10 sm:text-[11px]"
               >
                 {added ? 'Added' : 'Order now'}
               </button>
               <button
                 type="button"
                 onClick={orderOnWhatsApp}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white touch-manipulation active:scale-[0.98] hover:bg-[#1ebe57] sm:h-[34px] sm:w-auto sm:gap-1 sm:px-2.5"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white touch-manipulation active:scale-[0.98] hover:bg-[#1ebe57] sm:w-auto sm:gap-1 sm:px-2.5"
                 aria-label="Order via WhatsApp"
                 title="Order via WhatsApp"
               >

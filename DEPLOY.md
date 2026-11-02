@@ -70,12 +70,8 @@ UI: http://localhost:5173 (Vite proxies `/api` → `:4000`)
    - `FRONTEND_URL` = `https://www.afroluxo.com`
    - `NODE_ENV` = `production`
    - `PORT` = `4000` (Render may override; app reads `process.env.PORT`)
-4. After deploy, open `https://afroluxo-by-asi-api.onrender.com/health`  
-   (exact hostname = service name; confirm in Render dashboard)
-5. If the Render URL differs, update both:
-   - `vercel.json`
-   - `frontend/vercel.json`  
-   rewrite destination from the placeholder to your real URL.
+4. After deploy, open `https://afroluxo-by-asi-api.onrender.com/health` and confirm it returns a healthy response. The frontend uses this Render service by default in production; set `VITE_API_URL` if your Render service has a different URL.
+5. If you rely on the Vercel same-origin API rewrite instead of `VITE_API_URL`, update the destination in both `vercel.json` and `frontend/vercel.json` to your actual Render URL.
 
 Free-tier note: Render spins down after idle; first request can take ~30–60s.
 
@@ -98,6 +94,10 @@ Free-tier note: Render spins down after idle; first request can take ~30–60s.
 `frontend/vercel.json` rewrites `/api/*` → Render and SPA fallback to `index.html`.
 
 Then set Render `CORS_ORIGIN` to the Vercel domain and redeploy/restart the API if needed.
+
+### Custom domain not opening
+
+The repository includes a GitHub Pages workflow and a `frontend/public/CNAME` for `afroluxo.com`. If the custom domain refuses connections, confirm the GitHub Pages deployment succeeded, the domain is configured under **Settings → Pages**, and the Namecheap DNS records point to GitHub Pages as listed in `frontend/DEPLOY-NAMECHEAP.md`. DNS changes can take up to 48 hours to propagate.
 
 ### Alternative (repo root)
 If you deploy from monorepo root, use root `vercel.json` (build + output already point at `frontend`).

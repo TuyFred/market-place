@@ -18,12 +18,12 @@ Every push to `main` rebuilds and publishes the shop automatically.
 
 | Name | Example |
 |------|---------|
-| `VITE_API_URL` | `https://your-api.onrender.com` |
+| `VITE_API_URL` | `https://afroluxo-by-asi-api.onrender.com` (only if your API URL differs from the default) |
 | `VITE_WHATSAPP_NUMBER` | `+13653369344` |
 | `VITE_SUPABASE_URL` | your Supabase URL |
 | `VITE_SUPABASE_ANON_KEY` | your anon key |
 
-Demo admin works without these.
+The production frontend defaults to the Render API declared in `render.yaml`. The API must be deployed and healthy for customer login, product data, and reviews to work.
 
 ---
 

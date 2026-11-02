@@ -31,8 +31,8 @@ function Stars({
           type="button"
           disabled={!onChange}
           onClick={() => onChange?.(n)}
-          className={`touch-manipulation rounded-lg p-0.5 transition active:scale-95 ${
-            onChange ? 'cursor-pointer hover:opacity-90' : 'cursor-default'
+          className={`touch-manipulation rounded-lg p-1 transition active:scale-95 ${
+            onChange ? 'min-h-11 min-w-11 cursor-pointer hover:opacity-90' : 'cursor-default'
           }`}
           aria-label={`${n} star${n === 1 ? '' : 's'}`}
           aria-checked={onChange ? n === value : undefined}
@@ -172,14 +172,17 @@ export function ProductReviews({ productId }: Props) {
       </div>
 
       {/* Compact write review */}
-      <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50/80 p-3 sm:p-4">
+      <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4 sm:p-5">
         {!openForm ? (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-neutral-500 sm:text-sm">Rate this product</p>
+          <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-sm font-semibold text-black">Enjoyed this product?</p>
+              <p className="mt-1 text-xs text-neutral-500">Share your experience with other shoppers.</p>
+            </div>
             <button
               type="button"
               onClick={startReview}
-              className="inline-flex min-h-[36px] items-center justify-center rounded-full bg-black px-4 text-xs font-semibold text-white touch-manipulation"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-black px-5 text-sm font-semibold text-white touch-manipulation"
             >
               Write a review
             </button>
@@ -191,7 +194,7 @@ export function ProductReviews({ productId }: Props) {
               <button
                 type="button"
                 onClick={() => setOpenForm(false)}
-                className="text-[11px] font-semibold text-neutral-500 hover:text-black"
+                className="min-h-11 px-3 text-xs font-semibold text-neutral-500 hover:text-black"
               >
                 Cancel
               </button>
@@ -200,11 +203,11 @@ export function ProductReviews({ productId }: Props) {
               <Stars value={rating} onChange={setRating} size="lg" />
             </div>
             <textarea
-              className="min-h-[56px] w-full resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm leading-relaxed text-black placeholder:text-neutral-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+              className="min-h-24 w-full resize-y rounded-xl border border-neutral-200 bg-white px-3 py-3 text-base leading-relaxed text-black placeholder:text-neutral-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
               placeholder="Comment (optional)"
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              rows={2}
+              rows={3}
             />
             {msg && <p className="text-[11px] text-neutral-600">{msg}</p>}
             <div className="flex justify-end">
@@ -212,7 +215,7 @@ export function ProductReviews({ productId }: Props) {
                 type="button"
                 disabled={saving}
                 onClick={submit}
-                className="inline-flex min-h-[36px] items-center justify-center rounded-full bg-black px-5 text-xs font-semibold text-white touch-manipulation disabled:opacity-50"
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-black px-6 text-sm font-semibold text-white touch-manipulation disabled:opacity-50"
               >
                 {saving ? '…' : 'Submit'}
               </button>
@@ -225,10 +228,10 @@ export function ProductReviews({ productId }: Props) {
       {/* Review list */}
       <div className="mt-6 space-y-3">
         {reviews.map((r) => (
-          <article key={r.id} className="rounded-2xl border border-neutral-200 bg-white p-4">
+          <article key={r.id} className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
             <div className="flex items-center justify-between gap-2">
               <Stars value={r.rating} size="sm" />
-              <p className="shrink-0 text-[11px] tabular-nums text-neutral-400">
+              <p className="shrink-0 text-xs tabular-nums text-neutral-400">
                 {new Date(r.created_at).toLocaleDateString()}
               </p>
             </div>
@@ -236,11 +239,11 @@ export function ProductReviews({ productId }: Props) {
             {r.body && !/^Rated \d stars?$/i.test(r.body.trim()) && (
               <p className="mt-1.5 text-sm leading-relaxed text-neutral-700">{r.body}</p>
             )}
-            <p className="mt-2 text-xs font-medium text-neutral-400">{r.user_name || 'Customer'}</p>
+            <p className="mt-3 border-t border-neutral-100 pt-3 text-xs font-medium text-neutral-500">{r.user_name || 'Customer'}</p>
           </article>
         ))}
         {reviews.length === 0 && (
-          <p className="rounded-2xl border border-dashed border-neutral-200 py-8 text-center text-sm text-neutral-400">
+          <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/50 px-4 py-10 text-center text-sm text-neutral-500">
             No reviews yet — be the first.
           </p>
         )}

@@ -194,14 +194,22 @@ export function ProductPage() {
         {product.id && <ProductReviews productId={product.id} />}
 
         {related.length > 0 && (
-          <div className="mt-16">
-            <h2 className="text-lg font-bold">You may also like</h2>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          <section className="mt-12 border-t border-neutral-200 pt-8 sm:mt-16 sm:pt-10" aria-labelledby="related-products-heading">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">More to explore</p>
+                <h2 id="related-products-heading" className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
+                  You may also like
+                </h2>
+              </div>
+              <span className="text-xs text-neutral-500">Similar styles</span>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
               {related.map((p) => (
                 <ProductCard key={p.id} product={p} variant="shop" />
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </section>

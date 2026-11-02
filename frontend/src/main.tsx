@@ -9,9 +9,10 @@ import { CartProvider } from './context/CartContext';
 import { CheckoutProvider } from './context/CheckoutContext';
 import { clearAuthStorage, hardRedirectHome, isProtectedPath } from './utils/session';
 
-// Same-origin `/api` by default (Vercel rewrite → Render). Avoids CORS on www.afroluxo.com.
+// Static hosts need the API's absolute URL; local development keeps using the Vite proxy.
 const configuredApi = (import.meta.env.VITE_API_URL || '').trim();
-axios.defaults.baseURL = configuredApi || '/';
+axios.defaults.baseURL =
+  configuredApi || (import.meta.env.PROD ? 'https://afroluxo-by-asi-api.onrender.com' : '/');
 
 axios.interceptors.response.use(
   (r) => r,
