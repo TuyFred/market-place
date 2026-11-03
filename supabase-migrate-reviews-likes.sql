@@ -21,6 +21,7 @@ ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Anyone can read visible reviews" ON public.product_reviews;
 DROP POLICY IF EXISTS "Service role manages reviews" ON public.product_reviews;
+DROP POLICY IF EXISTS "Authenticated users can create own reviews" ON public.product_reviews;
 
 CREATE POLICY "Anyone can read visible reviews"
   ON public.product_reviews FOR SELECT
@@ -32,7 +33,12 @@ CREATE POLICY "Service role manages reviews"
   USING (true)
   WITH CHECK (true);
 
+CREATE POLICY "Authenticated users can create own reviews"
+  ON public.product_reviews FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
 GRANT SELECT ON public.product_reviews TO anon, authenticated;
+GRANT INSERT ON public.product_reviews TO authenticated;
 GRANT ALL ON public.product_reviews TO service_role;
 
 CREATE TABLE IF NOT EXISTS public.product_likes (

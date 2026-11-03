@@ -93,6 +93,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!isAuthenticated || !token) {
       openAuthModal('login');
       setError('Please sign in to place an order.');
@@ -200,8 +201,8 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
-      <button type="button" className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-label="Close" onClick={onClose} />
+    <div className="fixed inset-0 z-[120] flex items-end justify-center pb-[env(safe-area-inset-bottom)] sm:items-center sm:p-4" role="dialog" aria-modal="true">
+      <button type="button" disabled={submitting} className="absolute inset-0 bg-black/70 backdrop-blur-sm disabled:cursor-wait" aria-label="Close checkout" onClick={onClose} />
 
       <div className="relative flex max-h-[96dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-h-[92dvh] sm:rounded-3xl">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-100 px-4 py-3.5 sm:px-5">
@@ -211,7 +212,12 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
               {successIds.length ? 'Order received' : 'Pay & confirm'}
             </h2>
           </div>
-          <button type="button" onClick={onClose} className="text-sm text-neutral-500 hover:text-black">
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={onClose}
+            className="inline-flex min-h-11 shrink-0 items-center px-3 text-sm text-neutral-500 hover:text-black disabled:opacity-50"
+          >
             Close
           </button>
         </div>
@@ -293,7 +299,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
                       key={id}
                       type="button"
                       onClick={() => setMethod(id)}
-                      className={`rounded-xl border px-3 py-3 text-left text-sm ${
+                      className={`min-h-11 rounded-xl border px-3 py-3 text-left text-sm ${
                         method === id ? 'border-black bg-black text-white' : 'border-neutral-200'
                       }`}
                     >
@@ -344,13 +350,17 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
                 <input
                   className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
                   placeholder="Full name"
+                  autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                 />
                 <input
+                  type="tel"
+                  inputMode="tel"
                   className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
                   placeholder="Phone"
+                  autoComplete="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
@@ -358,6 +368,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
                 <input
                   className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
                   placeholder="Delivery address"
+                  autoComplete="street-address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   required
@@ -366,6 +377,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
                   type="email"
                   className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
                   placeholder="Email (optional)"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />

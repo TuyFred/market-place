@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Product, ProductCard } from '../components/products/ProductCard';
@@ -24,6 +24,9 @@ export function ProductPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [added, setAdded] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const handleReviewStatsChange = useCallback((stats: { reviewCount: number; avgRating: number }) => {
+    setProduct((current) => (current ? { ...current, ...stats } : current));
+  }, []);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -238,7 +241,9 @@ export function ProductPage() {
           </div>
         </div>
 
-        {product.id && <ProductReviews productId={product.id} />}
+        {product.id && (
+          <ProductReviews productId={product.id} onStatsChange={handleReviewStatsChange} />
+        )}
 
         {related.length > 0 && (
           <section className="mt-12 border-t border-neutral-200 pt-8 sm:mt-16 sm:pt-10" aria-labelledby="related-products-heading">

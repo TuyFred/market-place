@@ -51,6 +51,8 @@ export function CustomerDashboardPage() {
   const { isAuthenticated, token, user, openAuthModal } = useAuth();
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
   const [uploading, setUploading] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
 
@@ -60,14 +62,23 @@ export function CustomerDashboardPage() {
       return;
     }
 
+    setLoading(true);
+    setLoadError('');
     axios
       .get<CustomerOrder[]>('/api/orders/my', {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setOrders(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setOrders([]))
+      .catch((error: unknown) => {
+        setOrders([]);
+        setLoadError(
+          axios.isAxiosError(error) && typeof error.response?.data?.message === 'string'
+            ? error.response.data.message
+            : 'Could not load your orders. Check your connection and try again.',
+        );
+      })
       .finally(() => setLoading(false));
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, retryCount]);
 
   const stats = useMemo(() => {
     const active = orders.filter((o) => o.status !== 'cancelled' && o.status !== 'delivered').length;
@@ -179,6 +190,18 @@ export function CustomerDashboardPage() {
                 {[1, 2].map((i) => (
                   <div key={i} className="h-40 animate-pulse rounded-2xl bg-white ring-1 ring-neutral-200" />
                 ))}
+              </div>
+            ) : loadError ? (
+              <div className="rounded-2xl border border-red-200 bg-white px-4 py-10 text-center" role="alert">
+                <p className="text-sm font-semibold text-red-800">Your orders could not be loaded.</p>
+                <p className="mt-1 break-words text-sm text-neutral-600">{loadError}</p>
+                <button
+                  type="button"
+                  onClick={() => setRetryCount((count) => count + 1)}
+                  className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-black px-5 text-sm font-semibold text-white"
+                >
+                  Try again
+                </button>
               </div>
             ) : orders.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-neutral-300 bg-white py-16 text-center">

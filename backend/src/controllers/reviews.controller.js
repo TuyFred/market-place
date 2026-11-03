@@ -20,7 +20,8 @@ export async function listProductReviewsHandler(request, reply) {
 
 export async function createReviewHandler(request, reply) {
   try {
-    const review = await createReview(request.params.productId, request.body, request.user);
+    const accessToken = request.headers.authorization.slice('Bearer '.length);
+    const review = await createReview(request.params.productId, request.body, request.user, accessToken);
     return sendSuccess(reply, 201, review);
   } catch (err) {
     return sendError(reply, err.statusCode || 400, err.message);

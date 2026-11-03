@@ -1,4 +1,6 @@
 import { supabaseAdmin } from '../config/supabase.js';
+import { createClient } from '@supabase/supabase-js';
+import { env } from '../config/env.js';
 
 const notConfiguredError = new Error('Supabase is not configured');
 notConfiguredError.statusCode = 503;
@@ -98,14 +100,18 @@ export async function listAllReviews() {
   return data || [];
 }
 
-export async function createReview(productId, payload, user) {
+export async function createReview(productId, payload, user, accessToken) {
   if (!supabaseAdmin) throw notConfiguredError;
+  const supabaseUser = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${accessToken}` } }
+  });
   const rating = Math.min(5, Math.max(1, parseInt(payload.rating, 10) || 5));
   const bodyRaw = String(payload.body || '').trim();
   // Star-only reviews are allowed; comment is optional
   const body = (bodyRaw || `Rated ${rating} stars`).slice(0, 2000);
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseUser
     .from('product_reviews')
     .insert({
       product_id: productId,
@@ -124,6 +130,12 @@ export async function createReview(productId, payload, user) {
     const msg = error.message || 'Could not save review';
     const schemaError = missingReviewSchemaError(error, 'product_reviews');
     if (schemaError) throw schemaError;
+    if (error.code === '42501') {
+      console.error('createReview: database rejected the review under row-level security');
+      const err = new Error('Reviews are temporarily unavailable. Please try again later.');
+      err.statusCode = 503;
+      throw err;
+    }
     const err = new Error(msg);
     err.statusCode = error.code === '23503' ? 404 : 400;
     throw err;

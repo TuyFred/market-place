@@ -11,7 +11,10 @@ type Review = {
   created_at: string;
 };
 
-type Props = { productId: string };
+type Props = {
+  productId: string;
+  onStatsChange?: (stats: { reviewCount: number; avgRating: number }) => void;
+};
 
 function Stars({
   value,
@@ -47,32 +50,47 @@ function Stars({
   );
 }
 
-export function ProductReviews({ productId }: Props) {
+export function ProductReviews({ productId, onStatsChange }: Props) {
   const { isAuthenticated, openAuthModal, token } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [likes, setLikes] = useState({ count: 0, liked: false });
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState('');
   const [msg, setMsg] = useState('');
+  const [msgIsError, setMsgIsError] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [openForm, setOpenForm] = useState(false);
 
-  const load = () => {
-    axios
-      .get<Review[]>(`/api/reviews/product/${productId}`)
-      .then((r) => {
-        setReviews(Array.isArray(r.data) ? r.data : []);
-        setLoadError('');
-      })
-      .catch((e: unknown) => {
-        setReviews([]);
-        const message =
-          axios.isAxiosError<{ message?: string }>(e) && typeof e.response?.data?.message === 'string'
+  const load = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get<Review[]>(`/api/reviews/product/${productId}`);
+      const nextReviews = Array.isArray(response.data) ? response.data : [];
+      setReviews(nextReviews);
+      setLoadError('');
+      const ratingTotal = nextReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0);
+      onStatsChange?.({
+        reviewCount: nextReviews.length,
+        avgRating: nextReviews.length ? Math.round((ratingTotal / nextReviews.length) * 10) / 10 : 0,
+      });
+      return nextReviews;
+    } catch (e: unknown) {
+      setReviews([]);
+      const message = axios.isAxiosError(e) && e.response?.status === 503
+          ? 'Reviews are temporarily unavailable. Please try again later.'
+          : axios.isAxiosError<{ message?: string }>(e) && typeof e.response?.data?.message === 'string'
             ? e.response.data.message
             : 'Could not load reviews right now. Please try again.';
-        setLoadError(message);
-      });
+      setLoadError(message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadLikes = () => {
     axios
       .get<{ count: number; liked: boolean }>(`/api/reviews/product/${productId}/likes`)
       .then((r) => setLikes(r.data && typeof r.data.count === 'number' ? r.data : { count: 0, liked: false }))
@@ -81,9 +99,10 @@ export function ProductReviews({ productId }: Props) {
 
   useEffect(() => {
     load();
+    loadLikes();
     setOpenForm(false);
     setMsg('');
-  }, [productId]);
+  }, [productId, onStatsChange]);
 
   const avg =
     reviews.length > 0 ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10 : 0;
@@ -105,10 +124,12 @@ export function ProductReviews({ productId }: Props) {
       setRating(5);
       setOpenForm(false);
       setMsg('Thanks — your review is live.');
-      load();
+      setMsgIsError(false);
+      await load();
     } catch (e: unknown) {
       const m = axios.isAxiosError(e) ? e.response?.data?.message : null;
       setMsg(typeof m === 'string' ? m : 'Could not post review');
+      setMsgIsError(true);
     }
     setSaving(false);
   };
@@ -220,7 +241,7 @@ export function ProductReviews({ productId }: Props) {
               onChange={(e) => setBody(e.target.value)}
               rows={3}
             />
-            {msg && <p className="text-[11px] text-neutral-600">{msg}</p>}
+            {msg && <p className={`text-[11px] ${msgIsError ? 'text-red-700' : 'text-neutral-600'}`}>{msg}</p>}
             <div className="flex justify-end">
               <button
                 type="button"
@@ -233,18 +254,28 @@ export function ProductReviews({ productId }: Props) {
             </div>
           </div>
         )}
-        {!openForm && msg && <p className="mt-2 text-[11px] text-emerald-700">{msg}</p>}
+        {!openForm && msg && (
+          <p className={`mt-2 text-[11px] ${msgIsError ? 'text-red-700' : 'text-emerald-700'}`}>{msg}</p>
+        )}
       </div>
 
       {/* Review list */}
       <div className="mt-6 space-y-3">
         {loadError && (
-          <p
-            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900"
+          <div
+            className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900 sm:flex-row sm:items-center sm:justify-between"
             role="alert"
           >
-            {loadError}
-          </p>
+            <p>{loadError}</p>
+            <button
+              type="button"
+              onClick={load}
+              disabled={loading}
+              className="min-h-11 shrink-0 rounded-full border border-amber-300 px-4 text-sm font-semibold text-amber-950 hover:bg-amber-100 disabled:opacity-50"
+            >
+              {loading ? 'Retrying…' : 'Retry'}
+            </button>
+          </div>
         )}
         {reviews.map((r) => (
           <article key={r.id} className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
