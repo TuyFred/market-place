@@ -29,7 +29,7 @@ type PaymentInfo = {
 
 export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
   const { isAuthenticated, token, openAuthModal, user } = useAuth();
-  const { clearCart } = useCart();
+  const { clearCart, removeFromCart } = useCart();
   const [method, setMethod] = useState<PayMethod>('bank');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -40,7 +40,9 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
   const [pay, setPay] = useState<PaymentInfo | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [successId, setSuccessId] = useState<string | null>(null);
+  const [successIds, setSuccessIds] = useState<string[]>([]);
+  const [successNotice, setSuccessNotice] = useState('');
+  const [successPaymentStatus, setSuccessPaymentStatus] = useState<'awaiting_payment' | 'payment_review'>('awaiting_payment');
 
   const total = useMemo(
     () => lines.reduce((s, l) => s + l.product.price * l.quantity, 0),
@@ -49,7 +51,8 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    setSuccessId(null);
+    setSuccessIds([]);
+    setSuccessNotice('');
     setError('');
     setPaymentReference('');
     setProofFile(null);
@@ -85,7 +88,6 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
 
   const validate = () => {
     if (!name.trim() || !phone.trim() || !address.trim()) return 'Please fill delivery name, phone, and address.';
-    if (!paymentReference.trim()) return 'Enter your payment reference or transaction ID after you pay.';
     return '';
   };
 
@@ -105,14 +107,16 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
     setSubmitting(true);
     setError('');
 
+    const createdOrders: { id: string; productId: string }[] = [];
+    let proofUploadFailed = false;
+    const paymentStatus = paymentReference.trim() ? 'payment_review' : 'awaiting_payment';
+
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      let lastOrderId: string | null = null;
-
       for (const line of lines) {
         const notes = [
           `Payment method: ${method}`,
-          `Reference: ${paymentReference.trim()}`,
+          paymentReference.trim() ? `Reference: ${paymentReference.trim()}` : '',
           `Qty: ${line.quantity}`,
           `Amount: ${formatUsdFromRwf(line.product.price * line.quantity)}`,
           email ? `Email: ${email}` : '',
@@ -121,7 +125,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
           .filter(Boolean)
           .join(' | ');
 
-        const res = await axios.post(
+        const res = await axios.post<{ id?: string }>(
           '/api/orders',
           {
             name: name.trim(),
@@ -131,38 +135,65 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
             quantity: Math.max(1, Number(line.quantity) || 1),
             notes,
             paymentMethod: method,
-            paymentReference: paymentReference.trim(),
-            paymentStatus: 'payment_review',
+            ...(paymentReference.trim() ? { paymentReference: paymentReference.trim() } : {}),
+            paymentStatus,
           },
           { headers },
         );
-        lastOrderId = res.data?.id || lastOrderId;
+        const orderId = res.data?.id;
+        if (!orderId) {
+          throw new Error('The server did not confirm the order. Check your orders before submitting again.');
+        }
+        createdOrders.push({ id: orderId, productId: line.product.id });
 
-        if (proofFile && lastOrderId) {
+        if (proofFile) {
           const fd = new FormData();
           fd.append('file', proofFile);
-          await axios.post(`/api/orders/${lastOrderId}/proof`, fd, {
-            headers: { ...headers, 'Content-Type': 'multipart/form-data' },
-          });
+          try {
+            await axios.post(`/api/orders/${orderId}/proof`, fd, { headers });
+          } catch {
+            proofUploadFailed = true;
+          }
         }
       }
 
-      if (!lastOrderId) {
+      if (createdOrders.length !== lines.length) {
         setError('Order was not saved. Please try again.');
         return;
       }
 
       clearCart();
-      setSuccessId(lastOrderId);
+      setSuccessIds(createdOrders.map((order) => order.id));
+      setSuccessPaymentStatus(
+        paymentStatus === 'payment_review' || (proofFile !== null && !proofUploadFailed)
+          ? 'payment_review'
+          : 'awaiting_payment',
+      );
+      if (proofUploadFailed) {
+        setSuccessNotice('Your order was saved, but the payment screenshot did not upload. Open your order dashboard to retry the screenshot.');
+      }
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err)
         ? err.response?.data?.message || err.response?.data?.error || err.message
         : '';
-      setError(
-        typeof msg === 'string' && msg
-          ? msg
-          : 'Could not place order. Sign in and check payment details.',
-      );
+      if (createdOrders.length > 0) {
+        createdOrders.forEach((order) => removeFromCart(order.productId));
+        setSuccessIds(createdOrders.map((order) => order.id));
+        setSuccessPaymentStatus(paymentStatus);
+        const failureMessage =
+          typeof msg === 'string' && msg
+            ? msg
+            : 'Some items could not be submitted.';
+        setSuccessNotice(
+          `${createdOrders.length} order${createdOrders.length === 1 ? '' : 's'} saved. The remaining item(s) are still in your cart. Check your order dashboard before retrying. ${failureMessage}`,
+        );
+      } else {
+        setError(
+          typeof msg === 'string' && msg
+            ? msg
+            : 'Could not place order. Sign in and check your connection, then try again.',
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -177,7 +208,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Secure checkout</p>
             <h2 className="mt-0.5 text-lg font-bold text-black">
-              {successId ? 'Order received' : 'Pay & confirm'}
+              {successIds.length ? 'Order received' : 'Pay & confirm'}
             </h2>
           </div>
           <button type="button" onClick={onClose} className="text-sm text-neutral-500 hover:text-black">
@@ -186,12 +217,21 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-          {successId ? (
+          {successIds.length ? (
             <div className="space-y-4 py-4 text-center">
               <p className="text-sm text-neutral-600">
-                Thank you. Your order is under <strong>payment review</strong>. We will confirm once payment is verified.
+                Thank you. {successPaymentStatus === 'payment_review'
+                  ? <>Your order is under <strong>payment review</strong>. We will confirm once payment is verified.</>
+                  : <>Your order is saved and awaiting payment. We will confirm it after payment is received.</>}
               </p>
-              <p className="text-xs text-neutral-400">Order ID: {successId}</p>
+              {successIds.map((id) => (
+                <p key={id} className="text-xs text-neutral-400">Order ID: {id}</p>
+              ))}
+              {successNotice && (
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
+                  {successNotice}
+                </p>
+              )}
               <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
                 <Link
                   to="/customer/dashboard"
@@ -300,7 +340,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
               </div>
 
               <div className="grid gap-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Delivery & payment proof</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Delivery & payment details</p>
                 <input
                   className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
                   placeholder="Full name"
@@ -331,11 +371,13 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
                 />
                 <input
                   className="w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm"
-                  placeholder="Payment reference / transaction ID"
+                  placeholder="Payment reference / transaction ID (optional)"
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
-                  required
                 />
+                <p className="-mt-2 text-xs leading-relaxed text-neutral-500">
+                  You can submit your order without a reference. Add one if you have already paid; otherwise your order will be saved as awaiting payment.
+                </p>
                 <label className="block text-xs text-neutral-500">
                   Upload payment screenshot (optional)
                   <input
@@ -356,7 +398,7 @@ export function PaymentCheckoutModal({ open, lines, onClose }: Props) {
                 disabled={submitting}
                 className="w-full min-h-[48px] bg-black text-sm font-semibold text-white disabled:opacity-50"
               >
-                {submitting ? 'Submitting…' : 'I paid — submit order'}
+                {submitting ? 'Submitting order…' : 'Submit order'}
               </button>
 
               <div className="flex flex-col gap-2 border-t border-neutral-100 pt-3 sm:flex-row">

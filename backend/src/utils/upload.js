@@ -26,9 +26,22 @@ const MAX_PROOF_BYTES = 5 * 1024 * 1024;
 function assertAllowed({ mimetype, size, bucket }) {
   const mime = (mimetype || '').toLowerCase();
 
+  if (bucket === 'order-proofs' && mime === 'application/pdf') {
+    if (size != null && size > MAX_PROOF_BYTES) {
+      const err = new Error('Payment proof must be 5 MB or smaller');
+      err.statusCode = 400;
+      throw err;
+    }
+    return;
+  }
+
   if (bucket === 'order-proofs' || bucket === 'product-images') {
     if (!IMAGE_MIMES.has(mime)) {
-      const err = new Error('Only JPEG, PNG, WebP, or GIF images are allowed');
+      const allowedTypes =
+        bucket === 'order-proofs'
+          ? 'Only JPEG, PNG, WebP, GIF, or PDF payment proofs are allowed'
+          : 'Only JPEG, PNG, WebP, or GIF images are allowed';
+      const err = new Error(allowedTypes);
       err.statusCode = 400;
       throw err;
     }
@@ -71,6 +84,7 @@ function assertAllowed({ mimetype, size, bucket }) {
 function safeExtension(filename, mimetype) {
   const fromName = path.extname(filename || '').toLowerCase().replace(/[^a-z0-9.]/g, '');
   if (fromName && fromName.length <= 8) return fromName;
+  if (mimetype?.includes('pdf')) return '.pdf';
   if (mimetype?.includes('png')) return '.png';
   if (mimetype?.includes('webp')) return '.webp';
   if (mimetype?.includes('gif')) return '.gif';

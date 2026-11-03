@@ -70,15 +70,19 @@ export async function createOrder(payload, user) {
     }
 
     const nextStock = stock - quantity;
-    const { error: stockErr } = await supabaseAdmin
+    const { data: stockUpdate, error: stockErr } = await supabaseAdmin
       .from('products')
       .update({ stock: nextStock })
       .eq('id', productId)
-      .gte('stock', quantity);
+      .gte('stock', quantity)
+      .select('id')
+      .maybeSingle();
 
-    if (stockErr) {
-      const err = new Error(stockErr.message || 'Could not update stock');
-      err.statusCode = 400;
+    if (stockErr || !stockUpdate) {
+      const err = new Error(
+        stockErr?.message || 'Stock changed while you were checking out. Please refresh your cart and try again.',
+      );
+      err.statusCode = stockErr ? 500 : 409;
       throw err;
     }
   }

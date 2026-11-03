@@ -58,11 +58,16 @@ export async function uploadProofHandler(request, reply) {
     // Log uploaded file info for debugging
     request.log.info({ msg: 'Received proof upload', file: { filename: file.filename, mimetype: file.mimetype, fields: file.fields } });
 
-    const stream = file.file; // stream.Readable
     const mimetype = file.mimetype;
     const filename = `${Date.now()}-${file.filename || 'proof'}`;
-
-    const publicUrl = await uploadImage(stream, mimetype, filename, 'order-proofs');
+    const proofBuffer = await file.toBuffer();
+    const publicUrl = await uploadImage(
+      proofBuffer,
+      mimetype,
+      filename,
+      'order-proofs',
+      proofBuffer.length
+    );
 
     const order = await uploadOrderProof(id, publicUrl);
     return sendSuccess(reply, 200, order);
