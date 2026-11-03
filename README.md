@@ -116,6 +116,10 @@ npm run create-bucket
 
 This verifies the public `product-images`, `order-proofs`, and `hero-videos` buckets and applies their upload size limits. Product photos are limited to 5 MB; they can also be omitted or supplied as a public image URL when saving a product.
 
+### Enable product reviews and likes
+
+For an existing Supabase project, open **Supabase → SQL Editor**, select the same project used by the backend, paste the contents of `supabase-migrate-reviews-likes.sql`, and run it once. The migration is safe to rerun and reloads the PostgREST schema cache. Afterward, check `https://market-place-z0w0.onrender.com/health`; it should report `"features":{"reviews":"connected"}`. If it reports `needs_migration`, confirm the SQL was run in the correct project and wait briefly for the schema cache to reload.
+
 ### Recover products hidden by the old category migration
 
 The older clothes-only SQL marked products in `children-shoes`, `women-shoes`, `small-bags`, and `electronics` inactive and removed those categories. The product rows were not deleted. If that migration was run and you want those products back in the shop, run `supabase-restore-products.sql` in the Supabase SQL Editor. The admin product list also includes inactive products so you can review and edit them.

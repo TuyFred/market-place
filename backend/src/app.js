@@ -20,6 +20,7 @@ export async function buildApp(options = {}) {
   fastify.get('/health', async () => {
     let database = 'not_configured';
     let hint = null;
+    let reviews = 'not_checked';
     if (supabaseAdmin) {
       try {
         const { error } = await supabaseAdmin.from('categories').select('id').limit(1);
@@ -28,6 +29,21 @@ export async function buildApp(options = {}) {
           hint = 'Run: cd backend && npm run check-db';
         } else {
           database = 'connected';
+          const [reviewsResult, likesResult] = await Promise.all([
+            supabaseAdmin.from('product_reviews').select('id').limit(1),
+            supabaseAdmin.from('product_likes').select('id').limit(1)
+          ]);
+          const schemaMissing = [reviewsResult.error, likesResult.error].some(
+            (tableError) =>
+              tableError?.code === '42P01' ||
+              tableError?.code === 'PGRST205' ||
+              /could not find the table .*schema cache/i.test(tableError?.message || '')
+          );
+          reviews = schemaMissing
+            ? 'needs_migration'
+            : reviewsResult.error || likesResult.error
+              ? 'error'
+              : 'connected';
         }
       } catch (err) {
         database = `error: ${err.message || 'unreachable'}`;
@@ -41,6 +57,10 @@ export async function buildApp(options = {}) {
       status: database === 'connected' ? 'ok' : 'degraded',
       env: env.NODE_ENV,
       database,
+      features: { reviews },
+      ...(reviews === 'needs_migration'
+        ? { reviewsHint: 'Run supabase-migrate-reviews-likes.sql in the Supabase SQL Editor for this project.' }
+        : {}),
       ...(hint ? { hint } : {})
     };
   });

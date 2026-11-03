@@ -1,9 +1,24 @@
 import { supabaseAdmin } from '../config/supabase.js';
 
 const notConfiguredError = new Error('Supabase is not configured');
+notConfiguredError.statusCode = 503;
+
+function missingReviewSchemaError(error, table) {
+  const missing =
+    error?.code === '42P01' ||
+    error?.code === 'PGRST205' ||
+    /relation .* does not exist|could not find the table .*schema cache/i.test(error?.message || '');
+  if (!missing) return null;
+
+  const err = new Error(
+    `Reviews are not configured because public.${table} is missing. Run supabase-migrate-reviews-likes.sql in the Supabase SQL Editor for this backend's project, then retry.`,
+  );
+  err.statusCode = 503;
+  return err;
+}
 
 export async function listReviewsForProduct(productId, { includeHidden = false } = {}) {
-  if (!supabaseAdmin) return [];
+  if (!supabaseAdmin) throw notConfiguredError;
   let q = supabaseAdmin
     .from('product_reviews')
     .select('*')
@@ -12,9 +27,12 @@ export async function listReviewsForProduct(productId, { includeHidden = false }
   if (!includeHidden) q = q.eq('is_visible', true);
   const { data, error } = await q;
   if (error) {
-    // Table missing / not migrated yet — never break the product page
+    const schemaError = missingReviewSchemaError(error, 'product_reviews');
+    if (schemaError) throw schemaError;
     console.warn('listReviews:', error.message);
-    return [];
+    const err = new Error('Could not load reviews. Please try again.');
+    err.statusCode = 500;
+    throw err;
   }
   return data || [];
 }
@@ -104,16 +122,10 @@ export async function createReview(productId, payload, user) {
 
   if (error) {
     const msg = error.message || 'Could not save review';
-    const missing =
-      /does not exist|schema cache|product_reviews/i.test(msg) ||
-      error.code === '42P01' ||
-      error.code === 'PGRST205';
-    const err = new Error(
-      missing
-        ? 'Reviews are not set up yet. Run supabase-migrate-reviews-likes.sql in Supabase.'
-        : msg
-    );
-    err.statusCode = 400;
+    const schemaError = missingReviewSchemaError(error, 'product_reviews');
+    if (schemaError) throw schemaError;
+    const err = new Error(msg);
+    err.statusCode = error.code === '23503' ? 404 : 400;
     throw err;
   }
   return data;
@@ -147,15 +159,28 @@ export async function deleteReview(id) {
 
 export async function toggleLike(productId, userId) {
   if (!supabaseAdmin) throw notConfiguredError;
-  const { data: existing } = await supabaseAdmin
+  const { data: existing, error: lookupError } = await supabaseAdmin
     .from('product_likes')
     .select('id')
     .eq('product_id', productId)
     .eq('user_id', userId)
     .maybeSingle();
 
+  if (lookupError) {
+    const schemaError = missingReviewSchemaError(lookupError, 'product_likes');
+    if (schemaError) throw schemaError;
+    const err = new Error('Could not update this like. Please try again.');
+    err.statusCode = 500;
+    throw err;
+  }
+
   if (existing?.id) {
-    await supabaseAdmin.from('product_likes').delete().eq('id', existing.id);
+    const { error } = await supabaseAdmin.from('product_likes').delete().eq('id', existing.id);
+    if (error) {
+      const err = new Error(error.message);
+      err.statusCode = 500;
+      throw err;
+    }
     return { liked: false };
   }
 
@@ -172,19 +197,33 @@ export async function toggleLike(productId, userId) {
 }
 
 export async function getLikeStats(productId, userId) {
-  if (!supabaseAdmin) return { count: 0, liked: false };
-  const { count } = await supabaseAdmin
+  if (!supabaseAdmin) throw notConfiguredError;
+  const { count, error: countError } = await supabaseAdmin
     .from('product_likes')
     .select('id', { count: 'exact', head: true })
     .eq('product_id', productId);
+  if (countError) {
+    const schemaError = missingReviewSchemaError(countError, 'product_likes');
+    if (schemaError) throw schemaError;
+    const err = new Error('Could not load product likes.');
+    err.statusCode = 500;
+    throw err;
+  }
   let liked = false;
   if (userId) {
-    const { data } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('product_likes')
       .select('id')
       .eq('product_id', productId)
       .eq('user_id', userId)
       .maybeSingle();
+    if (error) {
+      const schemaError = missingReviewSchemaError(error, 'product_likes');
+      if (schemaError) throw schemaError;
+      const err = new Error('Could not load product likes.');
+      err.statusCode = 500;
+      throw err;
+    }
     liked = !!data?.id;
   }
   return { count: count || 0, liked };

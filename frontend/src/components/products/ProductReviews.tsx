@@ -54,14 +54,25 @@ export function ProductReviews({ productId }: Props) {
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState('');
   const [msg, setMsg] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [openForm, setOpenForm] = useState(false);
 
   const load = () => {
     axios
       .get<Review[]>(`/api/reviews/product/${productId}`)
-      .then((r) => setReviews(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setReviews([]));
+      .then((r) => {
+        setReviews(Array.isArray(r.data) ? r.data : []);
+        setLoadError('');
+      })
+      .catch((e: unknown) => {
+        setReviews([]);
+        const message =
+          axios.isAxiosError<{ message?: string }>(e) && typeof e.response?.data?.message === 'string'
+            ? e.response.data.message
+            : 'Could not load reviews right now. Please try again.';
+        setLoadError(message);
+      });
     axios
       .get<{ count: number; liked: boolean }>(`/api/reviews/product/${productId}/likes`)
       .then((r) => setLikes(r.data && typeof r.data.count === 'number' ? r.data : { count: 0, liked: false }))
@@ -227,6 +238,14 @@ export function ProductReviews({ productId }: Props) {
 
       {/* Review list */}
       <div className="mt-6 space-y-3">
+        {loadError && (
+          <p
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900"
+            role="alert"
+          >
+            {loadError}
+          </p>
+        )}
         {reviews.map((r) => (
           <article key={r.id} className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
             <div className="flex items-center justify-between gap-2">
@@ -242,7 +261,7 @@ export function ProductReviews({ productId }: Props) {
             <p className="mt-3 border-t border-neutral-100 pt-3 text-xs font-medium text-neutral-500">{r.user_name || 'Customer'}</p>
           </article>
         ))}
-        {reviews.length === 0 && (
+        {!loadError && reviews.length === 0 && (
           <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/50 px-4 py-10 text-center text-sm text-neutral-500">
             No reviews yet — be the first.
           </p>

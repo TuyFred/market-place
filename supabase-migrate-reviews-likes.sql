@@ -1,4 +1,6 @@
 -- Product reviews (Amazon-style) + likes for popularity
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS public.product_reviews (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id  UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
@@ -22,12 +24,16 @@ DROP POLICY IF EXISTS "Service role manages reviews" ON public.product_reviews;
 
 CREATE POLICY "Anyone can read visible reviews"
   ON public.product_reviews FOR SELECT
+  TO anon, authenticated
   USING (is_visible = true);
 
 CREATE POLICY "Service role manages reviews"
-  ON public.product_reviews FOR ALL
+  ON public.product_reviews FOR ALL TO service_role
   USING (true)
   WITH CHECK (true);
+
+GRANT SELECT ON public.product_reviews TO anon, authenticated;
+GRANT ALL ON public.product_reviews TO service_role;
 
 CREATE TABLE IF NOT EXISTS public.product_likes (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -46,9 +52,16 @@ DROP POLICY IF EXISTS "Service role manages likes" ON public.product_likes;
 
 CREATE POLICY "Anyone can read likes"
   ON public.product_likes FOR SELECT
+  TO anon, authenticated
   USING (true);
 
 CREATE POLICY "Service role manages likes"
-  ON public.product_likes FOR ALL
+  ON public.product_likes FOR ALL TO service_role
   USING (true)
   WITH CHECK (true);
+
+GRANT SELECT ON public.product_likes TO anon, authenticated;
+GRANT ALL ON public.product_likes TO service_role;
+
+NOTIFY pgrst, 'reload schema';
+COMMIT;
